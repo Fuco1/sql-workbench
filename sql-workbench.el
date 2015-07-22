@@ -162,6 +162,8 @@ QUERY should return one column."
       swb-result-buffer
     (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
 
+;; TODO: add something to send multiple queries (region/buffer)
+;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
 (defun swb-send-current-query (&optional new-result-buffer)
   "Send the query under the cursor to the connection of current buffer.
 
@@ -197,6 +199,8 @@ Limits to 500 lines of output."
     map)
   "Keymap for swb mode.")
 
+;; TODO: add autoload for .swb files
+;; TODO: store connection details to .swb files (host, port, user, database, NO PASSWORD!)
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
