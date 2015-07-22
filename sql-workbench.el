@@ -51,24 +51,42 @@
     (goto-char (point-max))
     (when (re-search-backward "^+-" nil t)
       (swb--fix-mysql-to-org-hline))
-    (rename-buffer (generate-new-buffer-name "*swb-query-result*"))
-    (goto-char (point-min))
-    (swb-result-mode)
-    (pop-to-buffer (current-buffer))))
+    (unless swb-buffer (rename-buffer (generate-new-buffer-name "*swb-query-result*")))
+    (if swb-silent
+        (kill-buffer)
+      (swb-result-mode)
+      (goto-char (point-min))
+      (let ((window (display-buffer (current-buffer))))
+        (with-selected-window window
+          (set-window-point window (point-min))
+          (forward-line 3)
+          (swb-result-forward-cell 1))))))
 
-(defun swb-run-sql-mysql (query connection &optional extra-switches)
+(defvar swb--batch-switches-mysql (list "-B" "-N")
+  "Switches to toggle batch-mode")
+
+(cl-defun swb-run-sql-mysql (query connection &key extra-switches silent synchronous buffer)
   "Run a QUERY at CONNECTION."
-  (let* ((buffer (generate-new-buffer " *swb-query*"))
-         (proc (apply 'start-process "swb-query" buffer "mysql"
-                      (-concat extra-switches
-                               (list "-A"
-                                     "-e" query
-                                     "-h" (connection-details-host connection)
-                                     "-P" (connection-details-port connection)
-                                     "-u" (connection-details-user connection)
-                                     (concat "-p" (connection-details-password connection))
-                                     (connection-details-database connection))))))
-    (set-process-sentinel proc 'swb-query-sentinel)))
+  (let* ((buffer (with-current-buffer (or buffer (generate-new-buffer " *swb-query*"))
+                   (read-only-mode -1)
+                   (erase-buffer)
+                   (set (make-local-variable 'swb-silent) silent)
+                   (set (make-local-variable 'swb-buffer) buffer)
+                   (current-buffer)))
+         (args (-concat extra-switches
+                        (list "-A"
+                              "-e" query
+                              "-h" (connection-details-host connection)
+                              "-P" (connection-details-port connection)
+                              "-u" (connection-details-user connection)
+                              (concat "-p" (connection-details-password connection)))
+                        (--if-let (connection-details-database connection) (list it) nil)))
+         (proc (if synchronous
+                   (apply 'call-process "mysql" nil buffer nil args)
+                 (apply 'start-process "swb-query" buffer "mysql" args))))
+    (unless synchronous (set-process-sentinel proc 'swb-query-sentinel))
+    buffer))
+
 
 ;; TODO: spravit tabular-mode tabulku so schemou
 
