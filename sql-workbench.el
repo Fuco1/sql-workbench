@@ -26,6 +26,8 @@
 
 ;; TODO: Make this less MYSQL-centric... ideally we should have some
 ;; interfaces with dynamic dispatch?
+;; TODO: Add function to clone the current workbench: basically just
+;; open a new buffer with the same connection.
 
 ;;; Code:
 
@@ -152,6 +154,8 @@ QUERY should return one column."
                  (error (point-max))))))
     (buffer-substring-no-properties beg end)))
 
+;; TODO: if user renames the window and there's no `workbench' in the
+;; name, just append the word `result' instead.
 (defun swb--get-result-buffer ()
   "Return the result buffer for this workbench."
   (if (buffer-live-p swb-result-buffer)
