@@ -101,6 +101,68 @@ QUERY should return one column."
   "Return available databases for CONNECTION."
   (swb--get-list-from-query "show databases;" connection))
 
+
+;;; Workbench mode
+(defvar swb-connection nil
+  "Connection to the server for this workbench.")
+
+(defun swb--read-connection ()
+  "Read connection data."
+  (let* ((host (read-from-minibuffer "Host: "))
+         (port (read-from-minibuffer "Port: "))
+         (user (read-from-minibuffer "User: "))
+         (password (read-from-minibuffer "Password: "))
+         (database (completing-read "Database: "
+                                    (swb--get-available-databases
+                                     (make-connection-details :host host :port port :user user :password password))
+                                    nil t)))
+    (list host port user password database)))
+
+(defun swb-new-workbench (host port user password database)
+  "Create new workbench."
+  (interactive (swb--read-connection))
+  (let ((connection (make-connection-details :host host :port port :user user :password password :database database)))
+    (with-current-buffer (get-buffer-create (generate-new-buffer-name "*swb-workbench*"))
+      (swb-mode)
+      (set (make-local-variable 'swb-connection) connection)
+      (pop-to-buffer (current-buffer)))))
+
+(defun swb-get-query-at-point ()
+  "Get query at point."
+  (let ((beg (save-excursion
+               (condition-case err
+                   (progn
+                     (while (not (and (re-search-backward ";")
+                                      (not (nth 4 (syntax-ppss))))))
+                     (point))
+                 (error (point-min)))))
+        (end (save-excursion
+               (condition-case err
+                   (progn
+                     (while (not (and (re-search-forward ";")
+                                      (not (nth 4 (syntax-ppss))))))
+                     (point))
+                 (error (point-max))))))
+    (buffer-substring-no-properties beg end)))
+
+(defun swb-send-current-query ()
+  "Send the query under the cursor to the connection of current buffer."
+  (interactive)
+  (swb-run-sql-mysql (swb-get-query-at-point) swb-connection :buffer swb-result-buffer))
+
+(defvar swb-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map sql-mode-map)
+    (define-key map (kbd "C-c C-c") 'swb-send-current-query)
+    map)
+  "Keymap for swb mode.")
+
+(define-derived-mode swb-mode sql-mode "SWB"
+  "Mode for editing SQL queries."
+  (use-local-map swb-mode-map)
+  (set (make-local-variable 'swb-result-buffer)
+       (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
+
 ;; TODO: spravit tabular-mode tabulku so schemou
 
 
