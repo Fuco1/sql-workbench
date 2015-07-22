@@ -217,7 +217,9 @@ Limits to 500 lines of output."
   (set (make-local-variable 'swb-result-buffer)
        (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
 
-;; TODO: spravit tabular-mode tabulku so schemou
+;; TODO: Add a backend for company.  It should be possible to cache
+;; available tables/columns at various levels: never, between queries,
+;; only invalidate on user request.
 
 
 ;;; Result mode
