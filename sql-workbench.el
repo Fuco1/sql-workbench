@@ -87,6 +87,19 @@
     (unless synchronous (set-process-sentinel proc 'swb-query-sentinel))
     buffer))
 
+(defun swb--get-list-from-query (query connection)
+  "Return a list of data from QUERY at CONNECTION.
+
+QUERY should return one column."
+  (let ((data-buffer (swb-run-sql-mysql query connection
+                                        :extra-switches swb--batch-switches-mysql
+                                        :silent t :synchronous t)))
+    (with-current-buffer data-buffer
+      (-map 's-trim (split-string (buffer-string) "\n" t)))))
+
+(defun swb--get-available-databases (connection)
+  "Return available databases for CONNECTION."
+  (swb--get-list-from-query "show databases;" connection))
 
 ;; TODO: spravit tabular-mode tabulku so schemou
 
