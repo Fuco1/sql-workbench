@@ -149,10 +149,20 @@ QUERY should return one column."
                  (error (point-max))))))
     (buffer-substring-no-properties beg end)))
 
-(defun swb-send-current-query ()
-  "Send the query under the cursor to the connection of current buffer."
-  (interactive)
-  (swb-run-sql-mysql (swb-get-query-at-point) swb-connection :buffer swb-result-buffer))
+(defun swb--get-result-buffer ()
+  "Return the result buffer for this workbench."
+  (if (buffer-live-p swb-result-buffer)
+      swb-result-buffer
+    (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
+
+(defun swb-send-current-query (&optional new-result-buffer)
+  "Send the query under the cursor to the connection of current buffer.
+
+If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
+  (interactive "P")
+  (swb-run-sql-mysql (swb-get-query-at-point) swb-connection
+                     :buffer (unless new-result-buffer (swb--get-result-buffer))))
+
 
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
