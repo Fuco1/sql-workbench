@@ -101,6 +101,10 @@ QUERY should return one column."
   "Return available databases for CONNECTION."
   (swb--get-list-from-query "show databases;" connection))
 
+(defun swb--get-available-tables (connection)
+  "Return available tables for CONNECTION."
+  (swb--get-list-from-query "show tables;" connection))
+
 
 ;;; Workbench mode
 (defvar swb-connection nil
