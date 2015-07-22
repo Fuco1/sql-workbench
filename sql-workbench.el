@@ -163,6 +163,13 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (swb-run-sql-mysql (swb-get-query-at-point) swb-connection
                      :buffer (unless new-result-buffer (swb--get-result-buffer))))
 
+(defun swb-show-data-in-table (table)
+  "Show data in TABLE.
+
+Limits to 500 lines of output."
+  (interactive (list (completing-read "Table: " (swb--get-available-tables swb-connection) nil t)))
+  (swb-run-sql-mysql (format "SELECT * FROM `%s` LIMIT 500;" table) swb-connection
+                     :buffer (get-buffer-create (format "*data-%s*" table))))
 
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
