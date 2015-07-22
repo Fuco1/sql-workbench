@@ -120,6 +120,9 @@ QUERY should return one column."
 (defvar swb-connection nil
   "Connection to the server for this workbench.")
 
+(defvar swb-result-buffer nil
+  "Result buffer for this workbench.")
+
 (defun swb--read-connection ()
   "Read connection data."
   (let* ((host (read-from-minibuffer "Host: " (when swb-connection (connection-details-host swb-connection))))
