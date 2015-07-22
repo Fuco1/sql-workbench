@@ -182,9 +182,17 @@ Limits to 500 lines of output."
   (swb-run-sql-mysql (format "SELECT * FROM `%s` LIMIT 500;" table) swb-connection
                      :buffer (get-buffer-create (format "*data-%s*" table))))
 
+(defun swb-describe-table (table)
+  "Describe table."
+  (interactive (list (swb--read-table)))
+  (swb-run-sql-mysql (format "DESCRIBE `%s`;" table) swb-connection
+                     :buffer (get-buffer-create (format "*schema-%s*" table))))
+
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map sql-mode-map)
+    (define-key map (kbd "C-c C-d") 'swb-show-data-in-table)
+    (define-key map (kbd "C-c C-t") 'swb-describe-table)
     (define-key map (kbd "C-c C-c") 'swb-send-current-query)
     map)
   "Keymap for swb mode.")
