@@ -34,6 +34,10 @@
 (require 'dash)
 (require 's)
 
+(require 'sql)
+(require 'org)
+(require 'org-table)
+
 (defstruct connection-details host port user password database)
 
 (defun swb--fix-mysql-to-org-hline ()
