@@ -41,7 +41,7 @@
 (defstruct connection-details host port user password database)
 
 (defun swb--fix-mysql-to-org-hline ()
-  "Replaces the initial and terminal the + in the hline with |."
+  "Replace the initial and terminal the + in the hline with |."
   (beginning-of-line)
   (delete-char 1)
   (insert "|")
@@ -50,6 +50,7 @@
   (insert "|"))
 
 (defun swb-query-sentinel (proc state)
+  "Query sentinel for PROC checking STATE."
   (with-current-buffer (process-buffer proc)
     (goto-char (point-min))
     (when (looking-at "^+-")
@@ -72,7 +73,7 @@
           (swb-result-forward-cell 1))))))
 
 (defvar swb--batch-switches-mysql (list "-B" "-N")
-  "Switches to toggle batch-mode")
+  "Switch to toggle batch-mode.")
 
 (cl-defun swb-run-sql-mysql (query connection &key extra-switches silent synchronous buffer)
   "Run a QUERY at CONNECTION."
@@ -132,7 +133,9 @@ QUERY should return one column."
     (list host port user password database)))
 
 (defun swb-new-workbench (host port user password database)
-  "Create new workbench."
+  "Create new workbench.
+
+HOST, PORT, USER, PASSWORD and DATABASE are connection details."
   (interactive (swb--read-connection))
   (let ((connection (make-connection-details :host host :port port :user user :password password :database database)))
     (with-current-buffer (get-buffer-create (generate-new-buffer-name "*swb-workbench*"))
@@ -189,7 +192,7 @@ Limits to 500 lines of output."
                      :buffer (get-buffer-create (format "*data-%s*" table))))
 
 (defun swb-describe-table (table)
-  "Describe table."
+  "Describe TABLE schema."
   (interactive (list (swb--read-table)))
   (swb-run-sql-mysql (format "DESCRIBE `%s`;" table) swb-connection
                      :buffer (get-buffer-create (format "*schema-%s*" table))))
@@ -235,7 +238,7 @@ Limits to 500 lines of output."
 
 ;; TODO: pridat podporu na zohladnenie regionu
 (defun swb-copy-column-csv ()
-  "Put the values of the column into kill-ring as comma-separated string."
+  "Put the values of the column into `kill-ring' as comma-separated string."
   (interactive)
   (save-excursion
     (-let* (((beg . end) (swb--get-column-bounds))
@@ -258,19 +261,19 @@ Limits to 500 lines of output."
       columns)))
 
 (defun swb-result-forward-cell (&optional arg)
-  "Go forward one cell."
+  "Go forward ARG cells."
   (interactive "p")
   (org-table-goto-column (+ arg (org-table-current-column)))
   (skip-syntax-forward " "))
 
 (defun swb-result-backward-cell (&optional arg)
-  "Go forward one cell."
+  "Go forward ARG cells."
   (interactive "p")
   (org-table-goto-column (- (org-table-current-column) arg))
   (skip-syntax-forward " "))
 
 (defun swb-result-up-cell (&optional arg)
-  "Go up one cell."
+  "Go up ARG cells."
   (interactive "p")
   (let ((cc (org-table-current-column)))
     (forward-line (- arg))
@@ -278,7 +281,7 @@ Limits to 500 lines of output."
     (skip-syntax-forward " ")))
 
 (defun swb-result-down-cell (&optional arg)
-  "Go down one cell."
+  "Go down ARG cells."
   (interactive "p")
   (let ((cc (org-table-current-column)))
     (forward-line arg)
