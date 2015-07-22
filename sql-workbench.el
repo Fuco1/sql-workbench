@@ -226,14 +226,16 @@ QUERY should return one column."
   (interactive "p")
   (let ((cc (org-table-current-column)))
     (forward-line (- arg))
-    (org-table-goto-column cc)))
+    (org-table-goto-column cc)
+    (skip-syntax-forward " ")))
 
 (defun swb-result-down-cell (&optional arg)
   "Go down one cell."
   (interactive "p")
   (let ((cc (org-table-current-column)))
     (forward-line arg)
-    (org-table-goto-column cc)))
+    (org-table-goto-column cc)
+    (skip-syntax-forward " ")))
 
 (defun swb-result-down-page ()
   "Scroll down half a page of results."
