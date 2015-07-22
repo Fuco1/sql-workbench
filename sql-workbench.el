@@ -117,14 +117,14 @@ QUERY should return one column."
 
 (defun swb--read-connection ()
   "Read connection data."
-  (let* ((host (read-from-minibuffer "Host: "))
-         (port (read-from-minibuffer "Port: "))
-         (user (read-from-minibuffer "User: "))
-         (password (read-from-minibuffer "Password: "))
+  (let* ((host (read-from-minibuffer "Host: " (when swb-connection (connection-details-host swb-connection))))
+         (port (read-from-minibuffer "Port: " (when swb-connection (connection-details-port swb-connection))))
+         (user (read-from-minibuffer "User: " (when swb-connection (connection-details-user swb-connection))))
+         (password (read-passwd "Password: "))
          (database (completing-read "Database: "
                                     (swb--get-available-databases
                                      (make-connection-details :host host :port port :user user :password password))
-                                    nil t)))
+                                    nil t nil nil (when swb-connection (connection-details-database swb-connection)))))
     (list host port user password database)))
 
 (defun swb-new-workbench (host port user password database)
