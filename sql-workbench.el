@@ -24,6 +24,9 @@
 
 ;;; Commentary:
 
+;; TODO: Make this less MYSQL-centric... ideally we should have some
+;; interfaces with dynamic dispatch?
+
 ;;; Code:
 
 (require 'dash)
