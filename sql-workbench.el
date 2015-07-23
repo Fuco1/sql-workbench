@@ -75,6 +75,9 @@
 (defvar swb--batch-switches-mysql (list "-B" "-N")
   "Switch to toggle batch-mode.")
 
+;; TODO: send the query with -vvv to get back selected/changed rows
+;; and time the query took.  This will require some light parsing on
+;; our part.
 (cl-defun swb-run-sql-mysql (query connection &key extra-switches silent synchronous buffer)
   "Run a QUERY at CONNECTION."
   (let* ((buffer (with-current-buffer (or buffer (generate-new-buffer " *swb-query*"))
@@ -325,6 +328,9 @@ Limits to 500 lines of output."
         (call-interactively 'org-table-sort-lines))
     (read-only-mode 1)))
 
+;; TODO: pridat podporu na editovanie riadkov priamo v result sete
+;; TODO: we should be able to edit the query which produced this
+;; result and re-run it, possibly in different window
 (defvar swb-result-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map org-mode-map)
