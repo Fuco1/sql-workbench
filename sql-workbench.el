@@ -212,13 +212,14 @@ Limits to 500 lines of output."
     map)
   "Keymap for swb mode.")
 
-;; TODO: add autoload for .swb files
 ;; TODO: store connection details to .swb files (host, port, user, database, NO PASSWORD!)
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
   (set (make-local-variable 'swb-result-buffer)
        (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
+
+;;;###autoload (add-to-list 'auto-mode-alist '("\\.swb\\'" . swb-mode))
 
 ;; TODO: Add a backend for company.  It should be possible to cache
 ;; available tables/columns at various levels: never, between queries,
