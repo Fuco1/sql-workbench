@@ -151,6 +151,8 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
       (set (make-local-variable 'swb-connection) connection)
       (pop-to-buffer (current-buffer)))))
 
+;; TODO: this might be connection-specific too, so we should probably
+;; move it to the class
 (defun swb-get-query-at-point ()
   "Get query at point."
   (let ((beg (save-excursion
@@ -191,6 +193,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   "Completing read for a table."
   (completing-read "Table: " (swb--get-available-tables swb-connection) nil t))
 
+;; TODO: make this into a generic method
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
@@ -199,6 +202,7 @@ Limits to 500 lines of output."
   (swb-run-sql-mysql (format "SELECT * FROM `%s` LIMIT 500;" table) swb-connection
                      :buffer (get-buffer-create (format "*data-%s*" table))))
 
+;; TODO: make this into a generic method
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
@@ -342,6 +346,8 @@ Limits to 500 lines of output."
     (define-key map "b" 'swb-result-backward-cell)
     (define-key map "p" 'swb-result-up-cell)
     (define-key map "n" 'swb-result-down-cell)
+    ;; TODO: add `revert' which should probably go on g, then we need
+    ;; to move goto-c elsewhere
     (define-key map "g" 'swb-result-goto-column)
     (define-key map "s" 'swb-sort-rows)
     (define-key map "c" 'swb-copy-column-csv)

@@ -61,6 +61,9 @@ that.")
   :documentation
   "Connection interface for work with the database.")
 
+;; TODO: send the query with -vvv to get back selected/changed rows
+;; and time the query took.  This will require some light parsing on
+;; our part.
 (defmethod swb-query ((this swb-connection) query buffer &rest args)
   "Run a QUERY asynchronously.
 
