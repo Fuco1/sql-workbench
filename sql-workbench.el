@@ -40,86 +40,6 @@
 
 (require 'swb-connection-mysql)
 
-(defstruct connection-details host port user password database)
-
-(defun swb--fix-mysql-to-org-hline ()
-  "Replace the initial and terminal the + in the hline with |."
-  (beginning-of-line)
-  (delete-char 1)
-  (insert "|")
-  (end-of-line)
-  (delete-char -1)
-  (insert "|"))
-
-(defun swb-query-sentinel (proc state)
-  "Query sentinel for PROC checking STATE."
-  (with-current-buffer (process-buffer proc)
-    (goto-char (point-min))
-    (when (looking-at "^+-")
-      (swb--fix-mysql-to-org-hline))
-    (forward-line 2)
-    (when (looking-at "^+-")
-      (swb--fix-mysql-to-org-hline))
-    (goto-char (point-max))
-    (when (re-search-backward "^+-" nil t)
-      (swb--fix-mysql-to-org-hline))
-    (unless swb-buffer (rename-buffer (generate-new-buffer-name "*swb-query-result*")))
-    (if swb-silent
-        (kill-buffer)
-      (swb-result-mode)
-      (goto-char (point-min))
-      (let ((window (display-buffer (current-buffer))))
-        (with-selected-window window
-          (set-window-point window (point-min))
-          (forward-line 3)
-          (swb-result-forward-cell 1))))))
-
-(defvar swb--batch-switches-mysql (list "-B" "-N")
-  "Switch to toggle batch-mode.")
-
-;; TODO: send the query with -vvv to get back selected/changed rows
-;; and time the query took.  This will require some light parsing on
-;; our part.
-(cl-defun swb-run-sql-mysql (query connection &key extra-switches silent synchronous buffer)
-  "Run a QUERY at CONNECTION."
-  (let* ((buffer (with-current-buffer (or buffer (generate-new-buffer " *swb-query*"))
-                   (read-only-mode -1)
-                   (erase-buffer)
-                   (set (make-local-variable 'swb-silent) silent)
-                   (set (make-local-variable 'swb-buffer) buffer)
-                   (current-buffer)))
-         (args (-concat extra-switches
-                        (list "-A"
-                              "-e" query
-                              "-h" (connection-details-host connection)
-                              "-P" (connection-details-port connection)
-                              "-u" (connection-details-user connection)
-                              (concat "-p" (connection-details-password connection)))
-                        (--if-let (connection-details-database connection) (list it) nil)))
-         (proc (if synchronous
-                   (apply 'call-process "mysql" nil buffer nil args)
-                 (apply 'start-process "swb-query" buffer "mysql" args))))
-    (unless synchronous (set-process-sentinel proc 'swb-query-sentinel))
-    buffer))
-
-(defun swb--get-list-from-query (query connection)
-  "Return a list of data from QUERY at CONNECTION.
-
-QUERY should return one column."
-  (let ((data-buffer (swb-run-sql-mysql query connection
-                                        :extra-switches swb--batch-switches-mysql
-                                        :silent t :synchronous t)))
-    (with-current-buffer data-buffer
-      (-map 's-trim (split-string (buffer-string) "\n" t)))))
-
-(defun swb--get-available-databases (connection)
-  "Return available databases for CONNECTION."
-  (swb--get-list-from-query "show databases;" connection))
-
-(defun swb--get-available-tables (connection)
-  "Return available tables for CONNECTION."
-  (swb--get-list-from-query "show tables;" connection))
-
 
 ;;; Workbench mode
 (defvar swb-connection nil
@@ -128,25 +48,29 @@ QUERY should return one column."
 (defvar swb-result-buffer nil
   "Result buffer for this workbench.")
 
-(defun swb--read-connection ()
-  "Read connection data."
-  (let* ((host (read-from-minibuffer "Host: " (when swb-connection (connection-details-host swb-connection))))
-         (port (read-from-minibuffer "Port: " (when swb-connection (connection-details-port swb-connection))))
-         (user (read-from-minibuffer "User: " (when swb-connection (connection-details-user swb-connection))))
+(defun swb--read-connection (connection-constructor)
+  "Read connection data.
+
+CONNECTION-CONSTRUCTOR is a constructor to create temporary
+connection when we query for the list of database."
+  (let* ((host (read-from-minibuffer "Host: " (when swb-connection (oref swb-connection host))))
+         (port (read-from-minibuffer "Port: " (when swb-connection (number-to-string (oref swb-connection port)))))
+         (user (read-from-minibuffer "User: " (when swb-connection (oref swb-connection user))))
          (password (read-passwd "Password: "))
          (database (completing-read "Database: "
-                                    (swb--get-available-databases
-                                     (make-connection-details :host host :port port :user user :password password))
-                                    nil t nil nil (when swb-connection (connection-details-database swb-connection)))))
-    (list host port user password database)))
+                                    (swb-get-databases
+                                     (funcall connection-constructor "temp" :host host :port (string-to-number port) :user user :password password))
+                                    nil t nil nil (when swb-connection (oref swb-connection database)))))
+    (list host (string-to-number port) user password database)))
 
-(defun swb-new-workbench (host port user password database)
-  "Create new workbench.
+(defun swb-new-workbench-mysql (host port user password database)
+  "Create new mysql workbench.
 
 HOST, PORT, USER, PASSWORD and DATABASE are connection details."
-  (interactive (swb--read-connection))
-  (let ((connection (make-connection-details :host host :port port :user user :password password :database database)))
-    (with-current-buffer (get-buffer-create (generate-new-buffer-name "*swb-workbench*"))
+  (interactive (swb--read-connection 'swb-connection-mysql))
+  (let* ((buffer-name (generate-new-buffer-name "*swb-workbench*"))
+         (connection (swb-connection-mysql buffer-name :host host :port port :user user :password password :database database)))
+    (with-current-buffer (get-buffer-create buffer-name)
       (swb-mode)
       (set (make-local-variable 'swb-connection) connection)
       (pop-to-buffer (current-buffer)))))
@@ -186,12 +110,14 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
 
 If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (interactive "P")
-  (swb-run-sql-mysql (swb-get-query-at-point) swb-connection
-                     :buffer (unless new-result-buffer (swb--get-result-buffer))))
+  (swb-query-display-result swb-connection (swb-get-query-at-point)
+                            (if new-result-buffer
+                                (generate-new-buffer "*result*")
+                              (swb--get-result-buffer))))
 
 (defun swb--read-table ()
   "Completing read for a table."
-  (completing-read "Table: " (swb--get-available-tables swb-connection) nil t))
+  (completing-read "Table: " (swb-get-tables swb-connection) nil t))
 
 ;; TODO: make this into a generic method
 (defun swb-show-data-in-table (table)
@@ -199,15 +125,15 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 Limits to 500 lines of output."
   (interactive (list (swb--read-table)))
-  (swb-run-sql-mysql (format "SELECT * FROM `%s` LIMIT 500;" table) swb-connection
-                     :buffer (get-buffer-create (format "*data-%s*" table))))
+  (swb-query-display-result swb-connection (format "SELECT * FROM `%s` LIMIT 500;" table)
+                            (get-buffer-create (format "*data-%s*" table))))
 
 ;; TODO: make this into a generic method
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
-  (swb-run-sql-mysql (format "DESCRIBE `%s`;" table) swb-connection
-                     :buffer (get-buffer-create (format "*schema-%s*" table))))
+  (swb-query-display-result swb-connection (format "DESCRIBE `%s`;" table)
+                            (get-buffer-create (format "*schema-%s*" table))))
 
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
