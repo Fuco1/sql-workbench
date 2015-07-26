@@ -117,5 +117,13 @@ corresponding value.
 
 Data are retrieved synchronously.")
 
+;; Helper methods
+
+(defmethod swb-get-databases ((this swb-connection))
+  "Return a list of databases available at this connection.")
+
+(defmethod swb-get-tables ((this swb-connection))
+  "Return a list of tables available at this connection in current database.")
+
 (provide 'swb-connection)
 ;;; swb-connection.el ends here

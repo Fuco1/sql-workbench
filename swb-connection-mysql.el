@@ -129,5 +129,11 @@ Format the table so that it is a valid `org-mode' table."
 (defmethod swb-query-fetch-alist ((this swb-connection-mysql) query)
   )
 
+(defmethod swb-get-databases ((this swb-connection-mysql))
+  (swb-query-fetch-column this "show databases;"))
+
+(defmethod swb-get-tables ((this swb-connection-mysql))
+  (swb-query-fetch-column this "show tables;"))
+
 (provide 'swb-connection-mysql)
 ;;; swb-connection-mysql.el ends here
