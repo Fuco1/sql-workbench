@@ -38,6 +38,8 @@
 (require 'org)
 (require 'org-table)
 
+(require 'swb-connection-mysql)
+
 (defstruct connection-details host port user password database)
 
 (defun swb--fix-mysql-to-org-hline ()
