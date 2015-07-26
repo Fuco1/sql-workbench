@@ -109,9 +109,8 @@ Format the table so that it is a valid `org-mode' table."
     (apply 'call-process "mysql" nil buffer nil cmd-args)
     buffer))
 
-(defmethod swb-query-display-result ((this swb-connection-mysql) query)
-  (let ((buffer (get-buffer-create "*swb-query-result*")))
-    (swb-query this query buffer :extra-args '("-t") :sentinel 'swb-mysql--display-result-sentinel)))
+(defmethod swb-query-display-result ((this swb-connection-mysql) query buffer)
+  (swb-query this query buffer :extra-args '("-t") :sentinel 'swb-mysql--display-result-sentinel))
 
 (defconst swb-mysql---batch-switches (list "-B" "-N")
   "Switch to toggle batch-mode.")

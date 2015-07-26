@@ -81,8 +81,8 @@ ARGS is a plist with additional arguments:
 - :extra-args are extra arguments which should be passed to the
   underlying process.")
 
-(defmethod swb-query-display-result ((this swb-connection) query)
-  "Run QUERY and display its result in a `swb-result-mode' buffer.")
+(defmethod swb-query-display-result ((this swb-connection) query buffer)
+  "Run QUERY and display its result in a `swb-result-mode' BUFFER.")
 
 (defmethod swb-query-fetch-column ((this swb-connection) query)
   "Run QUERY and return a list of values.
