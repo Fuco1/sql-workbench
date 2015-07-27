@@ -105,6 +105,7 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
 
 ;; TODO: add something to send multiple queries (region/buffer)
 ;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
+;; TODO: warn before sending unsafe queries
 (defun swb-send-current-query (&optional new-result-buffer)
   "Send the query under the cursor to the connection of current buffer.
 
@@ -276,6 +277,8 @@ Limits to 500 lines of output."
     ;; to move goto-c elsewhere
     (define-key map "g" 'swb-result-goto-column)
     (define-key map "s" 'swb-sort-rows)
+    ;; TODO: add various export options: line/selection/table/column
+    ;; as sql, csv, xml (??)
     (define-key map "c" 'swb-copy-column-csv)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
     (define-key map (kbd "<left>") 'swb-result-backward-cell)
