@@ -101,7 +101,9 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
   "Return the result buffer for this workbench."
   (if (buffer-live-p swb-result-buffer)
       swb-result-buffer
-    (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
+    (if (string-match-p "workbench" (buffer-name))
+        (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))
+      (get-buffer-create (concat "*swb-result-" (buffer-name) "*")))))
 
 ;; TODO: add something to send multiple queries (region/buffer)
 ;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
@@ -149,8 +151,7 @@ Limits to 500 lines of output."
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
-  (set (make-local-variable 'swb-result-buffer)
-       (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))))
+  (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer)))
 
 ;;;###autoload (add-to-list 'auto-mode-alist '("\\.swb\\'" . swb-mode))
 
