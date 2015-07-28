@@ -120,7 +120,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 (defun swb--read-table ()
   "Completing read for a table."
-  (completing-read "Table: " (swb-get-tables swb-connection) nil t))
+  (completing-read "Table: " (swb-get-tables swb-connection) nil t nil nil (symbol-name (symbol-at-point))))
 
 ;; TODO: make this into a generic method
 (defun swb-show-data-in-table (table)
