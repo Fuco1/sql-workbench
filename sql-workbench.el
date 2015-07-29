@@ -28,6 +28,7 @@
 ;; interfaces with dynamic dispatch?
 ;; TODO: Add function to clone the current workbench: basically just
 ;; open a new buffer with the same connection.
+;; TODO: Better error handling (font-lock the error)
 
 ;;; Code:
 
@@ -63,6 +64,9 @@ connection when we query for the list of database."
                                     nil t nil nil (when swb-connection (oref swb-connection database)))))
     (list host (string-to-number port) user password database)))
 
+;; TODO: Add reconnect.  Should take parameters from the
+;; file-local-parameters or ask for details.  Basically it's the same
+;; as this function but without creating new window
 (defun swb-new-workbench-mysql (host port user password database)
   "Create new mysql workbench.
 
@@ -147,6 +151,8 @@ Limits to 500 lines of output."
     map)
   "Keymap for swb mode.")
 
+;; TODO: add header line (don't forget to set as buffer safe or something)
+;; (setq header-line-format '(:eval (concat (swb-get-user swb-connection) "@" (swb-get-host swb-connection) ":" (number-to-string (swb-get-port swb-connection)) " -- " (swb-get-database swb-connection))))
 ;; TODO: store connection details to .swb files (host, port, user, database, NO PASSWORD!)
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
@@ -264,6 +270,7 @@ Limits to 500 lines of output."
     (read-only-mode 1)))
 
 ;; TODO: pridat podporu na editovanie riadkov priamo v result sete
+;; TODO: add helpers to add rows to the table (M-RET)
 ;; TODO: we should be able to edit the query which produced this
 ;; result and re-run it, possibly in different window
 (defvar swb-result-mode-map
