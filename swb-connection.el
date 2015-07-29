@@ -36,6 +36,7 @@
          :initform "localhost"
          :type string
          :protection :protected
+         :accessor swb-get-host
          :documentation
      "IP or URL where the database is located.
 Should not contain port number, use the `port' attribute for
@@ -44,10 +45,12 @@ that.")
          :type integer
          :initform 3306
          :protection :protected
+         :accessor swb-get-port
          :documentation "Port.")
    (user :initarg :user
          :type string
          :protection :protected
+         :accessor swb-get-user
          :documentation "User.")
    (password :initarg :password
              :type string
@@ -56,6 +59,7 @@ that.")
    (database :initarg :database
              :type string
              :protection :protected
+             :accessor swb-get-database
              :documentation "Database."))
   :abstract t
   :documentation
