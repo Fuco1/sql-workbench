@@ -89,7 +89,10 @@ Format the table so that it is a valid `org-mode' table."
       (with-selected-window window
         (set-window-point window (point-min))
         (forward-line 3)
-        (swb-result-forward-cell 1)))))
+        (swb-result-forward-cell 1)
+        ;; make sure there is no gap... this moves the point to the
+        ;; 4th visible line of the window
+        (recenter 4)))))
 
 (defclass swb-connection-mysql (swb-connection)
   ()
