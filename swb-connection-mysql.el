@@ -71,6 +71,8 @@ the process."
   "Pop to buffer with the output of PROC once it finished.
 
 Format the table so that it is a valid `org-mode' table."
+  ;; TODO: move this cleanup elsewhere, the display code could be
+  ;; reused between backends
   (with-current-buffer (process-buffer proc)
     (goto-char (point-min))
     (when (looking-at "^+-")

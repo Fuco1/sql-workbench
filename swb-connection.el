@@ -70,6 +70,8 @@ that.")
 ;; our part.  This will also help in case of empty result set, when we
 ;; can echo "0 rows" in the minibuffer (where the "result statistics"
 ;; should go as well).
+;; TODO: show status in the mode line or header line somehow.  The
+;; sentinel can update it once the process is finished.
 (defmethod swb-query ((this swb-connection) query buffer &rest args)
   "Run a QUERY asynchronously.
 

@@ -112,6 +112,8 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
 ;; TODO: add something to send multiple queries (region/buffer)
 ;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
 ;; TODO: warn before sending unsafe queries
+;; TODO: add a version which replaces the SELECT clause with count(*)
+;; so you can see only the number of results
 (defun swb-send-current-query (&optional new-result-buffer)
   "Send the query under the cursor to the connection of current buffer.
 
@@ -127,6 +129,8 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (completing-read "Table: " (swb-get-tables swb-connection) nil t nil nil (symbol-name (symbol-at-point))))
 
 ;; TODO: make this into a generic method
+;; TODO: show how many lines in total are in the table (select count
+;; (*) from table)
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
@@ -154,6 +158,7 @@ Limits to 500 lines of output."
 ;; TODO: add header line (don't forget to set as buffer safe or something)
 ;; (setq header-line-format '(:eval (concat (swb-get-user swb-connection) "@" (swb-get-host swb-connection) ":" (number-to-string (swb-get-port swb-connection)) " -- " (swb-get-database swb-connection))))
 ;; TODO: store connection details to .swb files (host, port, user, database, NO PASSWORD!)
+;; TODO: add command to switch to a different database on the same host
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
@@ -299,6 +304,17 @@ Limits to 500 lines of output."
     map)
   "Keymap for swb result mode.")
 
+;; TODO: mode line in the result should be customized to show useful information
+;; - buffer name (so we know what we're looking at, duh ;)
+;; - position of the point in grid (ie active cell)
+;; - if region is active, show sum and average of the selected elements
+;; - how many rows were returned/affected by this query
+;; Ideally make it customizable by the user, but that's only step 2
+;; (with custom format string)
+;; TODO: the table line with column names should be a "floating"
+;; overlay which would always appear as the first line of the buffer
+;; (anchored with some silly TP) so that we always see what value a
+;; column is
 (define-derived-mode swb-result-mode org-mode "Swb result"
   "Mode for displaying results of sql queries."
   (read-only-mode 1)
