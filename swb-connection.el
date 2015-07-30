@@ -102,6 +102,14 @@ of the result set (= column).
 
 Data are retrieved synchronously.")
 
+(defmethod swb-query-fetch-one ((this swb-connection) query)
+  "Run QUERY and return a value.
+
+The query should return one column and one row only.
+
+Data are retrieved synchronously."
+  (car (swb-query-fetch-column this query)))
+
 (defmethod swb-query-fetch-tuples ((this swb-connection) query)
   "Run QUERY and return a list of tuples, one for each row.
 
