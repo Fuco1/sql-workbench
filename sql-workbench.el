@@ -70,19 +70,75 @@ Has the same format as `mode-line-format'."
 (defvar swb-result-buffer nil
   "Result buffer for this workbench.")
 
+(defun swb--get-default-host ()
+  "Get default host for this buffer.
+
+First look if there is a connection.  If so, reuse.
+
+Then look at the local variable `swb-host'.
+
+If nothing is found, return nil."
+  (cond
+   ((swb-iconnection-child-p swb-connection)
+    (swb-get-host swb-connection))
+   (swb-host)
+   (t nil)))
+
+(defun swb--get-default-port ()
+  "Get default port for this buffer.
+
+First look if there is a connection.  If so, reuse.
+
+Then look at the local variable `swb-port'.
+
+If nothing is found, return nil."
+  (cond
+   ((swb-iconnection-child-p swb-connection)
+    (swb-get-port swb-connection))
+   (swb-port (string-to-number swb-port))
+   (t nil)))
+
+(defun swb--get-default-user ()
+  "Get default user for this buffer.
+
+First look if there is a connection.  If so, reuse.
+
+Then look at the local variable `swb-user'.
+
+If nothing is found, return nil."
+  (cond
+   ((swb-iconnection-child-p swb-connection)
+    (swb-get-user swb-connection))
+   (swb-user)
+   (t nil)))
+
+(defun swb--get-default-database ()
+  "Get default database for this buffer.
+
+First look if there is a connection.  If so, reuse.
+
+Then look at the local variable `swb-database'.
+
+If nothing is found, return nil."
+  (cond
+   ((swb-iconnection-child-p swb-connection)
+    (swb-get-database swb-connection))
+   (swb-database)
+   (t nil)))
+
 (defun swb--read-connection (connection-constructor)
   "Read connection data.
 
 CONNECTION-CONSTRUCTOR is a constructor to create temporary
 connection when we query for the list of database."
-  (let* ((host (read-from-minibuffer "Host: " (when (swb-iconnection-p swb-connection) (swb-get-host swb-connection))))
-         (port (read-from-minibuffer "Port: " (when (swb-iconnection-p swb-connection) (number-to-string (swb-get-port swb-connection)))))
-         (user (read-from-minibuffer "User: " (when (swb-iconnection-p swb-connection) (swb-get-user swb-connection))))
+  (let* ((host (read-from-minibuffer "Host: " (swb--get-default-host)))
+         (port (read-from-minibuffer "Port: " (number-to-string (swb--get-default-port))))
+         (user (read-from-minibuffer "User: " (swb--get-default-user)))
          (password (read-passwd "Password: "))
          (database (completing-read "Database: "
                                     (swb-get-databases
                                      (funcall connection-constructor "temp" :host host :port (string-to-number port) :user user :password password))
-                                    nil t nil nil (when (swb-iconnection-p swb-connection) (swb-get-database swb-connection)))))
+                                    nil t nil nil (swb--get-default-database))))
     (list host (string-to-number port) user password database)))
 
 ;; TODO: Add reconnect.  Should take parameters from the
