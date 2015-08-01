@@ -41,6 +41,11 @@
 
 
 ;;; Workbench mode
+(defgroup sql-workbench ()
+  "Workbench for SQL."
+  :group 'data
+  :prefix "swb-")
+
 (defvar swb-connection nil
   "Connection to the server for this workbench.")
 
