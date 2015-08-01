@@ -29,7 +29,7 @@
 (require 's)
 
 (require 'eieio)
-(require 'swb-connection)
+(require 'swb-iconnection)
 
 ;; For the interactive sentinel
 (declare-function swb-result-mode "sql-workbench")
@@ -46,8 +46,8 @@
   "Prepare the argument list.
 
 QUERY is the query, CONNECTION is an instance of
-`swb-connection', EXTRA-ARGS are any extra arguments to pass to
-the process."
+`swb-connection-mysql', EXTRA-ARGS are any extra arguments to
+pass to the process."
   (-concat extra-args
            (list "-A"
                  "-e" query
@@ -97,7 +97,7 @@ QUERY is the current executed query."
         ;; 4th visible line of the window
         (recenter 4)))))
 
-(defclass swb-connection-mysql (swb-connection)
+(defclass swb-connection-mysql (swb-iconnection)
   ()
   :documentation
   "Connection implementation for MySQL.")

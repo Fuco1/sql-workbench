@@ -1,4 +1,4 @@
-;;; swb-connection.el --- Basic interface for talking to databases.
+;;; swb-iconnection.el --- Basic interface for talking to databases.
 
 ;; Copyright (C) 2015 Matúš Goljer <matus.goljer@gmail.com>
 
@@ -31,7 +31,7 @@
 
 (require 'eieio)
 
-(defclass swb-connection ()
+(defclass swb-iconnection ()
   ((host :initarg :host
          :initform "localhost"
          :type string
@@ -72,7 +72,7 @@ that.")
 ;; should go as well).
 ;; TODO: show status in the mode line or header line somehow.  The
 ;; sentinel can update it once the process is finished.
-(defmethod swb-query ((this swb-connection) query buffer &rest args)
+(defmethod swb-query ((this swb-iconnection) query buffer &rest args)
   "Run a QUERY asynchronously.
 
 BUFFER is a buffer where the result is stored.
@@ -82,7 +82,7 @@ ARGS is a plist with additional arguments:
 - :extra-args are extra arguments which should be passed to the
   underlying process.")
 
-(defmethod swb-query-synchronously ((this swb-connection) query buffer &rest args)
+(defmethod swb-query-synchronously ((this swb-iconnection) query buffer &rest args)
   "Run a QUERY synchronously.
 
 BUFFER is a buffer where the result is stored.
@@ -92,10 +92,10 @@ ARGS is a plist with additional arguments:
 - :extra-args are extra arguments which should be passed to the
   underlying process.")
 
-(defmethod swb-query-display-result ((this swb-connection) query buffer)
+(defmethod swb-query-display-result ((this swb-iconnection) query buffer)
   "Run QUERY and display its result in a `swb-result-mode' BUFFER.")
 
-(defmethod swb-query-fetch-column ((this swb-connection) query)
+(defmethod swb-query-fetch-column ((this swb-iconnection) query)
   "Run QUERY and return a list of values.
 
 The query should return one column only.  The resulting list is
@@ -104,7 +104,7 @@ of the result set (= column).
 
 Data are retrieved synchronously.")
 
-(defmethod swb-query-fetch-one ((this swb-connection) query)
+(defmethod swb-query-fetch-one ((this swb-iconnection) query)
   "Run QUERY and return a value.
 
 The query should return one column and one row only.
@@ -112,7 +112,7 @@ The query should return one column and one row only.
 Data are retrieved synchronously."
   (car (swb-query-fetch-column this query)))
 
-(defmethod swb-query-fetch-tuples ((this swb-connection) query)
+(defmethod swb-query-fetch-tuples ((this swb-iconnection) query)
   "Run QUERY and return a list of tuples, one for each row.
 
 Each tuple contains as many elements as there were columns
@@ -120,7 +120,7 @@ returned, in that order.
 
 Data are retrieved synchronously.")
 
-(defmethod swb-query-fetch-plist ((this swb-connection) query)
+(defmethod swb-query-fetch-plist ((this swb-iconnection) query)
   "Run QUERY and return a list of plists, one for each row.
 
 Each plist has as key the symbol :column and as value the
@@ -128,7 +128,7 @@ corresponding value.
 
 Data are retrieved synchronously.")
 
-(defmethod swb-query-fetch-alist ((this swb-connection) query)
+(defmethod swb-query-fetch-alist ((this swb-iconnection) query)
   "Run QUERY and return a list of alists, one for each row.
 
 Each alist has as key the symbol `column' and as value the
@@ -138,11 +138,11 @@ Data are retrieved synchronously.")
 
 ;; Helper methods
 
-(defmethod swb-get-databases ((this swb-connection))
+(defmethod swb-get-databases ((this swb-iconnection))
   "Return a list of databases available at this connection.")
 
-(defmethod swb-get-tables ((this swb-connection))
+(defmethod swb-get-tables ((this swb-iconnection))
   "Return a list of tables available at this connection in current database.")
 
-(provide 'swb-connection)
-;;; swb-connection.el ends here
+(provide 'swb-iconnection)
+;;; swb-iconnection.el ends here

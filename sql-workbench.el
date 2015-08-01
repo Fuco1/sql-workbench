@@ -73,14 +73,14 @@ Has the same format as `mode-line-format'."
 
 CONNECTION-CONSTRUCTOR is a constructor to create temporary
 connection when we query for the list of database."
-  (let* ((host (read-from-minibuffer "Host: " (when (swb-connection-p swb-connection) (swb-get-host swb-connection))))
-         (port (read-from-minibuffer "Port: " (when (swb-connection-p swb-connection) (number-to-string (swb-get-port swb-connection)))))
-         (user (read-from-minibuffer "User: " (when (swb-connection-p swb-connection) (swb-get-user swb-connection))))
+  (let* ((host (read-from-minibuffer "Host: " (when (swb-iconnection-p swb-connection) (swb-get-host swb-connection))))
+         (port (read-from-minibuffer "Port: " (when (swb-iconnection-p swb-connection) (number-to-string (swb-get-port swb-connection)))))
+         (user (read-from-minibuffer "User: " (when (swb-iconnection-p swb-connection) (swb-get-user swb-connection))))
          (password (read-passwd "Password: "))
          (database (completing-read "Database: "
                                     (swb-get-databases
                                      (funcall connection-constructor "temp" :host host :port (string-to-number port) :user user :password password))
-                                    nil t nil nil (when (swb-connection-p swb-connection) (swb-get-database swb-connection)))))
+                                    nil t nil nil (when (swb-iconnection-p swb-connection) (swb-get-database swb-connection)))))
     (list host (string-to-number port) user password database)))
 
 ;; TODO: Add reconnect.  Should take parameters from the
@@ -168,6 +168,16 @@ Limits to 500 lines of output."
   (interactive (list (swb--read-table)))
   (swb-query-display-result swb-connection (format "DESCRIBE `%s`;" table)
                             (get-buffer-create (format "*schema-%s*" table))))
+
+(defun swb-store-connection-to-file ()
+  "Store connection details as file-local variables."
+  (interactive)
+  (when (swb-iconnection-p swb-connection)
+    (with-slots (host port user database) swb-connection
+      (add-file-local-variable 'swb-host host)
+      (add-file-local-variable 'swb-port (number-to-string port))
+      (add-file-local-variable 'swb-user user)
+      (add-file-local-variable 'swb-database database))))
 
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
