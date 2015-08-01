@@ -24,8 +24,6 @@
 
 ;;; Commentary:
 
-;; TODO: Add function to clone the current workbench: basically just
-;; open a new buffer with the same connection.
 ;; TODO: Better error handling (font-lock the error)
 
 ;;; Code:
@@ -153,6 +151,19 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
   (interactive (swb--read-connection 'swb-connection-mysql))
   (let* ((connection (swb-connection-mysql (buffer-name) :host host :port port :user user :password password :database database)))
     (set (make-local-variable 'swb-connection) connection)))
+
+(defun swb-clone ()
+  "Clone this workbench.
+
+Open new clean workbench with the same connection details."
+  (interactive)
+  (let* ((buffer-name (generate-new-buffer-name "*swb-workbench*"))
+         (conncetion (clone swb-connection)))
+    ;; TODO: abstract this piece and the same code in swb-new-workbench-mysql
+    (with-current-buffer (get-buffer-create buffer-name)
+      (swb-mode)
+      (set (make-local-variable 'swb-connection) conncetion)
+      (pop-to-buffer (current-buffer)))))
 
 (defun swb-new-workbench-mysql (host port user password database)
   "Create new mysql workbench.
