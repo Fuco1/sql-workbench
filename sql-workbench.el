@@ -56,14 +56,14 @@
 
 CONNECTION-CONSTRUCTOR is a constructor to create temporary
 connection when we query for the list of database."
-  (let* ((host (read-from-minibuffer "Host: " (when swb-connection (swb-get-host swb-connection))))
-         (port (read-from-minibuffer "Port: " (when swb-connection (number-to-string (swb-get-port swb-connection)))))
-         (user (read-from-minibuffer "User: " (when swb-connection (swb-get-user swb-connection))))
+  (let* ((host (read-from-minibuffer "Host: " (when (swb-connection-p swb-connection) (swb-get-host swb-connection))))
+         (port (read-from-minibuffer "Port: " (when (swb-connection-p swb-connection) (number-to-string (swb-get-port swb-connection)))))
+         (user (read-from-minibuffer "User: " (when (swb-connection-p swb-connection) (swb-get-user swb-connection))))
          (password (read-passwd "Password: "))
          (database (completing-read "Database: "
                                     (swb-get-databases
                                      (funcall connection-constructor "temp" :host host :port (string-to-number port) :user user :password password))
-                                    nil t nil nil (when swb-connection (swb-get-database swb-connection)))))
+                                    nil t nil nil (when (swb-connection-p swb-connection) (swb-get-database swb-connection)))))
     (list host (string-to-number port) user password database)))
 
 ;; TODO: Add reconnect.  Should take parameters from the
