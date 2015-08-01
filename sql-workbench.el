@@ -46,6 +46,18 @@
   :group 'data
   :prefix "swb-")
 
+(defcustom swb-header-line-format '(:eval
+                                    (concat (swb-get-user swb-connection)
+                                            "@" (swb-get-host swb-connection)
+                                            ":" (number-to-string (swb-get-port swb-connection))
+                                            " -- " (swb-get-database swb-connection)))
+  "The format expression for sql-workbench's header line.
+
+Has the same format as `mode-line-format'."
+  :type 'sexp
+  :group 'sql-workbench)
+(put 'swb-header-line-format 'risky-local-variable t)
+
 (defvar swb-connection nil
   "Connection to the server for this workbench.")
 
@@ -166,13 +178,12 @@ Limits to 500 lines of output."
     map)
   "Keymap for swb mode.")
 
-;; TODO: add header line (don't forget to set as buffer safe or something)
-;; (setq header-line-format '(:eval (concat (swb-get-user swb-connection) "@" (swb-get-host swb-connection) ":" (number-to-string (swb-get-port swb-connection)) " -- " (swb-get-database swb-connection))))
 ;; TODO: store connection details to .swb files (host, port, user, database, NO PASSWORD!)
 ;; TODO: add command to switch to a different database on the same host
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
+  (setq header-line-format swb-header-line-format)
   (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer)))
 
 ;;;###autoload (add-to-list 'auto-mode-alist '("\\.swb\\'" . swb-mode))
