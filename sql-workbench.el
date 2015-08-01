@@ -141,9 +141,14 @@ connection when we query for the list of database."
                                     nil t nil nil (swb--get-default-database))))
     (list host (string-to-number port) user password database)))
 
-;; TODO: Add reconnect.  Should take parameters from the
-;; file-local-parameters or ask for details.  Basically it's the same
-;; as this function but without creating new window
+(defun swb-reconnect (host port user password database)
+  "Reconnect this workbench.
+
+HOST, PORT, USER, PASSWORD and DATABASE are connection details."
+  (interactive (swb--read-connection 'swb-connection-mysql))
+  (let* ((connection (swb-connection-mysql (buffer-name) :host host :port port :user user :password password :database database)))
+    (set (make-local-variable 'swb-connection) connection)))
+
 (defun swb-new-workbench-mysql (host port user password database)
   "Create new mysql workbench.
 
