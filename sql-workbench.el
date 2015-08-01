@@ -67,6 +67,11 @@ Has the same format as `mode-line-format'."
 (defvar swb-query nil
   "Last executed query for this workbench.")
 
+(defvar swb-host nil "String determining host.")
+(defvar swb-port nil "Number determining port.")
+(defvar swb-user nil "String determining user.")
+(defvar swb-database nil "String determining database.")
+
 (defvar swb-result-buffer nil
   "Result buffer for this workbench.")
 
