@@ -172,12 +172,11 @@ Limits to 500 lines of output."
 (defun swb-store-connection-to-file ()
   "Store connection details as file-local variables."
   (interactive)
-  (when (swb-iconnection-p swb-connection)
-    (with-slots (host port user database) swb-connection
-      (add-file-local-variable 'swb-host host)
-      (add-file-local-variable 'swb-port (number-to-string port))
-      (add-file-local-variable 'swb-user user)
-      (add-file-local-variable 'swb-database database))))
+  (when (swb-iconnection-child-p swb-connection)
+    (add-file-local-variable 'swb-host (swb-get-host swb-connection))
+    (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
+    (add-file-local-variable 'swb-user (swb-get-user swb-connection))
+    (add-file-local-variable 'swb-database (swb-get-database swb-connection))))
 
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
@@ -188,7 +187,6 @@ Limits to 500 lines of output."
     map)
   "Keymap for swb mode.")
 
-;; TODO: store connection details to .swb files (host, port, user, database, NO PASSWORD!)
 ;; TODO: add command to switch to a different database on the same host
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
