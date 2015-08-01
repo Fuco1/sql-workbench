@@ -124,22 +124,53 @@ QUERY is the current executed query."
              (lambda (proc _state)
                (swb-mysql--display-result-sentinel proc _state query))))
 
-(defconst swb-mysql---batch-switches (list "-B" "-N")
+(defconst swb-mysql--batch-switches (list "-B" "-N" "--column-names")
   "Switch to toggle batch-mode.")
 
 (defmethod swb-query-fetch-column ((this swb-connection-mysql) query)
   (with-temp-buffer
-    (swb-query-synchronously this query (current-buffer) :extra-args swb-mysql---batch-switches)
-    (-map 's-trim (split-string (buffer-string) "\n" t))))
+    (swb-query-synchronously this query (current-buffer) :extra-args swb-mysql--batch-switches)
+    (cdr (-map 's-trim (split-string (buffer-string) "\n" t)))))
+
+(defun swb-mysql--fetch-tuples-and-column-names (connection query)
+  "Mysql helper for `swb-query-fetch-*'.
+
+Fetch data like `swb-query-fetch-tuples' but as the first item
+put a list of column names.
+
+CONNECTION is an instance of `swb-connection-mysql', QUERY is the
+SQL query."
+  (with-temp-buffer
+    (swb-query-synchronously connection query (current-buffer) :extra-args swb-mysql--batch-switches)
+    (--map (-map 's-trim (split-string it "\t" t)) (split-string (buffer-string) "\n" t))))
 
 (defmethod swb-query-fetch-tuples ((this swb-connection-mysql) query)
-  )
+  (cdr (swb-mysql--fetch-tuples-and-column-names this query)))
 
 (defmethod swb-query-fetch-plist ((this swb-connection-mysql) query)
-  )
+  (-let* (((columns . data) (swb-mysql--fetch-tuples-and-column-names this query))
+          (columns (--map (intern (concat ":" it)) columns)))
+    (-map (lambda (row)
+            (let (r)
+              (-zip-with
+               (lambda (name datum)
+                 (push name r)
+                 (push datum r))
+               columns row)
+              (nreverse r)))
+          data)))
 
 (defmethod swb-query-fetch-alist ((this swb-connection-mysql) query)
-  )
+  (-let* (((columns . data) (swb-mysql--fetch-tuples-and-column-names this query))
+          (columns (--map (intern it) columns)))
+    (-map (lambda (row)
+            (let (r)
+              (-zip-with
+               (lambda (name datum)
+                 (push (cons name datum) r))
+               columns row)
+              (nreverse r)))
+          data)))
 
 (defmethod swb-get-databases ((this swb-connection-mysql))
   (swb-query-fetch-column this "show databases;"))
