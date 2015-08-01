@@ -47,10 +47,12 @@
   :prefix "swb-")
 
 (defcustom swb-header-line-format '(:eval
-                                    (concat (swb-get-user swb-connection)
-                                            "@" (swb-get-host swb-connection)
-                                            ":" (number-to-string (swb-get-port swb-connection))
-                                            " -- " (swb-get-database swb-connection)))
+                                    (if (swb-iconnection-child-p swb-connection)
+                                        (concat (swb-get-user swb-connection)
+                                                "@" (swb-get-host swb-connection)
+                                                ":" (number-to-string (swb-get-port swb-connection))
+                                                " -- " (swb-get-database swb-connection))
+                                      "No connection"))
   "The format expression for sql-workbench's header line.
 
 Has the same format as `mode-line-format'."
