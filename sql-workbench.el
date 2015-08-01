@@ -24,8 +24,6 @@
 
 ;;; Commentary:
 
-;; TODO: Make this less MYSQL-centric... ideally we should have some
-;; interfaces with dynamic dispatch?
 ;; TODO: Add function to clone the current workbench: basically just
 ;; open a new buffer with the same connection.
 ;; TODO: Better error handling (font-lock the error)
@@ -140,6 +138,10 @@ Limits to 500 lines of output."
                             (get-buffer-create (format "*data-%s*" table))))
 
 ;; TODO: make this into a generic method
+;; TODO: add a version to get `show create table'
+;; TODO: show index from <table> shows more detailed information about
+;; keys, maybe we could merge this and the `describe table' outputs
+;; into one?
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
@@ -278,6 +280,10 @@ Limits to 500 lines of output."
 ;; TODO: add helpers to add rows to the table (M-RET)
 ;; TODO: we should be able to edit the query which produced this
 ;; result and re-run it, possibly in different window
+;; TODO: add font-locking
+;; - query the server for types of columns
+;;   - distinguish dates, numbers, strings, blobs (we should also shorten these somehow!), nulls
+;;   - primary keys in bold
 (defvar swb-result-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map org-mode-map)
@@ -292,6 +298,7 @@ Limits to 500 lines of output."
     (define-key map "s" 'swb-sort-rows)
     ;; TODO: add various export options: line/selection/table/column
     ;; as sql, csv, xml (??)
+    ;; TODO: add function to copy the content of current cell
     (define-key map "c" 'swb-copy-column-csv)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
     (define-key map (kbd "<left>") 'swb-result-backward-cell)
