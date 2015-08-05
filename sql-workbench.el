@@ -193,17 +193,23 @@ Limits to 500 lines of output."
       (cons beg end))))
 
 ;; TODO: pridat podporu na zohladnenie regionu
+(defun swb--get-column-data ()
+  "Get data of current column."
+  (-let* (((beg . end) (swb--get-column-bounds))
+          (col-data (org-table-copy-region
+                     (save-excursion
+                       (goto-char beg)
+                       (swb-result-down-cell 2)
+                       (point))
+                     end)))
+    col-data))
+
+;; TODO: pridat podporu na zohladnenie regionu
 (defun swb-copy-column-csv ()
   "Put the values of the column into `kill-ring' as comma-separated string."
   (interactive)
   (save-excursion
-    (-let* (((beg . end) (swb--get-column-bounds))
-            (col-data (org-table-copy-region
-                       (save-excursion
-                         (goto-char beg)
-                         (swb-result-down-cell 2)
-                         (point))
-                       end)))
+    (let ((col-data (swb--get-column-data)))
       (kill-new (mapconcat 's-trim (-flatten col-data) ", "))
       (message "Copied %d rows." (length col-data)))))
 
