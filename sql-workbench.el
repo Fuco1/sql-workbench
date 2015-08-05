@@ -282,6 +282,53 @@ Limits to 500 lines of output."
         (call-interactively 'org-table-sort-lines))
     (read-only-mode 1)))
 
+;; TODO: this is just copy-pasted `org-table-sum'.  Fix the bloody
+;; duplicity!.
+(defun swb-org-table-avg (&optional beg end nlast)
+  "See `org-table-sum'."
+  (interactive)
+  (save-excursion
+    (let (col (org-timecnt 0) diff h m s org-table-clip)
+      (cond
+       ((and beg end))   ; beg and end given explicitly
+       ((org-region-active-p)
+        (setq beg (region-beginning) end (region-end)))
+       (t
+        (setq col (org-table-current-column))
+        (goto-char (org-table-begin))
+        (unless (re-search-forward "^[ \t]*|[^-]" nil t)
+          (user-error "No table data"))
+        (org-table-goto-column col)
+        (setq beg (point))
+        (goto-char (org-table-end))
+        (unless (re-search-backward "^[ \t]*|[^-]" nil t)
+          (user-error "No table data"))
+        (org-table-goto-column col)
+        (setq end (point))))
+      (let* ((items (apply 'append (org-table-copy-region beg end)))
+             (items1 (cond ((not nlast) items)
+                           ((>= nlast (length items)) items)
+                           (t (setq items (reverse items))
+                              (setcdr (nthcdr (1- nlast) items) nil)
+                              (nreverse items))))
+             (numbers (delq nil (mapcar 'org-table-get-number-for-summing
+                                        items1)))
+             (res (apply '+ numbers))
+             (sres (if (= org-timecnt 0)
+                       (number-to-string res)
+                     (setq diff (* 3600 res)
+                           h (floor (/ diff 3600)) diff (mod diff 3600)
+                           m (floor (/ diff 60)) diff (mod diff 60)
+                           s diff)
+                     (format "%.0f:%02.0f:%02.0f" h m s))))
+        (kill-new sres)
+        (if (org-called-interactively-p 'interactive)
+            (message "%s"
+                     (substitute-command-keys
+                      (format "Average of %d items: %-20f     (\\[yank] will insert result into buffer)"
+                              (length numbers) (/ (float res) (length numbers))))))
+        (/ res (length numbers))))))
+
 ;; TODO: pridat podporu na editovanie riadkov priamo v result sete
 ;; TODO: add helpers to add rows to the table (M-RET)
 ;; TODO: we should be able to edit the query which produced this
@@ -294,6 +341,7 @@ Limits to 500 lines of output."
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map org-mode-map)
     (define-key map "+" 'org-table-sum)
+    (define-key map "%" 'swb-org-table-avg)
     (define-key map "f" 'swb-result-forward-cell)
     (define-key map "b" 'swb-result-backward-cell)
     (define-key map "p" 'swb-result-up-cell)
