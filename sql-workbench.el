@@ -430,7 +430,7 @@ This means rerunning the query which produced it."
                               (nreverse items))))
              (numbers (delq nil (mapcar 'org-table-get-number-for-summing
                                         items1)))
-             (res (apply '+ numbers))
+             (res (/ (float (apply '+ numbers)) (length numbers)))
              (sres (if (= org-timecnt 0)
                        (number-to-string res)
                      (setq diff (* 3600 res)
@@ -442,9 +442,9 @@ This means rerunning the query which produced it."
         (if (org-called-interactively-p 'interactive)
             (message "%s"
                      (substitute-command-keys
-                      (format "Average of %d items: %-20f     (\\[yank] will insert result into buffer)"
-                              (length numbers) (/ (float res) (length numbers))))))
-        (/ res (length numbers))))))
+                      (format "Average of %d items: %-20s     (\\[yank] will insert result into buffer)"
+                              (length numbers) sres))))
+        sres))))
 
 ;; TODO: pridat podporu na editovanie riadkov priamo v result sete
 ;; TODO: add helpers to add rows to the table (M-RET)
