@@ -165,6 +165,7 @@ Open new clean workbench with the same connection details."
       (set (make-local-variable 'swb-connection) conncetion)
       (pop-to-buffer (current-buffer)))))
 
+;; TODO: add a function to change the active database
 (defun swb-new-workbench-mysql (host port user password database)
   "Create new mysql workbench.
 
