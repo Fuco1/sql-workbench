@@ -337,7 +337,6 @@ Limits to 500 lines of output."
 ;; - query the server for types of columns
 ;;   - distinguish dates, numbers, strings, blobs (we should also shorten these somehow!), nulls
 ;;   - primary keys in bold
-;; TODO: add `q' to bury/kill
 ;; TODO: we should display sum and avg of current column/selected
 ;; region in the modeline always.  Make sure it doesn't lag too much,
 ;; so only run it on an idle timer, 0.5s or so should be good delay
@@ -358,6 +357,7 @@ Limits to 500 lines of output."
     ;; as sql, csv, xml (??)
     ;; TODO: add function to copy the content of current cell
     (define-key map "c" 'swb-copy-column-csv)
+    (define-key map "q" 'quit-window)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
     (define-key map (kbd "<left>") 'swb-result-backward-cell)
     (define-key map (kbd "<up>") 'swb-result-up-cell)
