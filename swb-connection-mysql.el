@@ -67,10 +67,12 @@ the process."
   (delete-char -1)
   (insert "|"))
 
-(defun swb-mysql--display-result-sentinel (proc _state)
+(defun swb-mysql--display-result-sentinel (proc _state query)
   "Pop to buffer with the output of PROC once it finished.
 
-Format the table so that it is a valid `org-mode' table."
+Format the table so that it is a valid `org-mode' table.
+
+QUERY is the current executed query."
   ;; TODO: move this cleanup elsewhere, the display code could be
   ;; reused between backends
   (with-current-buffer (process-buffer proc)
@@ -84,6 +86,7 @@ Format the table so that it is a valid `org-mode' table."
     (when (re-search-backward "^+-" nil t)
       (swb-mysql--fix-table-to-org-hline))
     (swb-result-mode)
+    (setq-local swb-query query)
     (goto-char (point-min))
     (let ((window (display-buffer (current-buffer))))
       (with-selected-window window
@@ -114,8 +117,12 @@ Format the table so that it is a valid `org-mode' table."
     (apply 'call-process "mysql" nil buffer nil cmd-args)
     buffer))
 
+;; The sentinel is responsible for setting up proper state for the
+;; result buffer, such as setting `swb-query' to the current query.
 (defmethod swb-query-display-result ((this swb-connection-mysql) query buffer)
-  (swb-query this query buffer :extra-args '("-t") :sentinel 'swb-mysql--display-result-sentinel))
+  (swb-query this query buffer :extra-args '("-t") :sentinel
+             (lambda (proc _state)
+               (swb-mysql--display-result-sentinel proc _state query))))
 
 (defconst swb-mysql---batch-switches (list "-B" "-N")
   "Switch to toggle batch-mode.")

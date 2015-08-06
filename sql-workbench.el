@@ -44,6 +44,10 @@
 (defvar swb-connection nil
   "Connection to the server for this workbench.")
 
+;; TOOD: make this into a ring.
+(defvar swb-query nil
+  "Last executed query for this workbench.")
+
 (defvar swb-result-buffer nil
   "Result buffer for this workbench.")
 
