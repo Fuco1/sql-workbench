@@ -135,7 +135,7 @@ If nothing is found, return nil."
 CONNECTION-CONSTRUCTOR is a constructor to create temporary
 connection when we query for the list of database."
   (let* ((host (read-from-minibuffer "Host: " (swb--get-default-host)))
-         (port (read-from-minibuffer "Port: " (number-to-string (swb--get-default-port))))
+         (port (read-from-minibuffer "Port: " (--when-let (swb--get-default-port) (number-to-string it))))
          (user (read-from-minibuffer "User: " (swb--get-default-user)))
          (password (read-passwd "Password: "))
          (database (completing-read "Database: "
