@@ -483,13 +483,6 @@ This means rerunning the query which produced it."
     map)
   "Keymap for swb result mode.")
 
-;; TODO: mode line in the result should be customized to show useful information
-;; - buffer name (so we know what we're looking at, duh ;)
-;; - position of the point in grid (ie active cell)
-;; - if region is active, show sum and average of the selected elements
-;; - how many rows were returned/affected by this query
-;; Ideally make it customizable by the user, but that's only step 2
-;; (with custom format string)
 ;; TODO: the table line with column names should be a "floating"
 ;; overlay which would always appear as the first line of the buffer
 ;; (anchored with some silly TP) so that we always see what value a
@@ -498,6 +491,16 @@ This means rerunning the query which produced it."
   "Mode for displaying results of sql queries."
   (read-only-mode 1)
   (set (make-local-variable 'org-mode-hook) nil)
+  ;; TODO: mode line in the result should be customized to show useful information
+  ;; - how many rows were returned/affected by this query
+  ;; Ideally make it customizable by the user, but that's only step 2
+  ;; (with custom format string)
+  (setq mode-line-format '((10 (:eval (format "(%d,%d)"
+                                              (- (line-number-at-pos) 3)
+                                              (org-table-current-column))))
+                           "%b"
+                           (:eval (when (use-region-p)
+                                    (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))))
   (use-local-map swb-result-mode-map)
   (visual-line-mode -1)
   (toggle-truncate-lines 1))
