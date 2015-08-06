@@ -268,8 +268,8 @@ Limits to 500 lines of output."
     (scroll-down)
     (org-table-goto-column cc)))
 
-(defun swb-result-goto-column (column-name)
-  "Go to column named COLUMN-NAME."
+(defun swb-result-jump-to-column (column-name)
+  "Jump to column named COLUMN-NAME."
   (interactive (list (completing-read "Column: "
                                       (swb--result-get-column-names)
                                       nil t)))
@@ -355,7 +355,7 @@ Limits to 500 lines of output."
     (define-key map "n" 'swb-result-down-cell)
     ;; TODO: add `revert' which should probably go on g, then we need
     ;; to move goto-c elsewhere
-    (define-key map "g" 'swb-result-goto-column)
+    (define-key map "j" 'swb-result-jump-to-column)
     (define-key map "s" 'swb-sort-rows)
     ;; TODO: add various export options: line/selection/table/column
     ;; as sql, csv, xml (??)
