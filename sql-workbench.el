@@ -229,7 +229,8 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 ;; TODO: make this into a generic method
 ;; TODO: show how many lines in total are in the table (select count
-;; (*) from table)
+;; (*) from table).  This should be added to the result buffer's
+;; mode-line in some "extensible" way.
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
