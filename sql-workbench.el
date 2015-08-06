@@ -276,6 +276,15 @@ Limits to 500 lines of output."
   (let ((column-number (1+ (--find-index (equal column-name it) (swb--result-get-column-names)))))
     (org-table-goto-column column-number)))
 
+;; TODO: we should be able to edit the query which produced this
+;; result and re-run it, possibly in different window
+(defun swb-revert ()
+  "Revert the current result buffer.
+
+This means rerunning the query which produced it."
+  (interactive)
+  (swb-query-display-result swb-connection swb-query (current-buffer)))
+
 ;; TODO: sort ma blby regexp na datum, berie len timestamp <yyyy-mm-dd>... a napr ignoruje hodiny
 (defun swb-sort-rows ()
   "Sort rows of the result table."
@@ -335,8 +344,6 @@ Limits to 500 lines of output."
 
 ;; TODO: pridat podporu na editovanie riadkov priamo v result sete
 ;; TODO: add helpers to add rows to the table (M-RET)
-;; TODO: we should be able to edit the query which produced this
-;; result and re-run it, possibly in different window
 ;; TODO: add font-locking
 ;; - query the server for types of columns
 ;;   - distinguish dates, numbers, strings, blobs (we should also shorten these somehow!), nulls
@@ -353,8 +360,7 @@ Limits to 500 lines of output."
     (define-key map "b" 'swb-result-backward-cell)
     (define-key map "p" 'swb-result-up-cell)
     (define-key map "n" 'swb-result-down-cell)
-    ;; TODO: add `revert' which should probably go on g, then we need
-    ;; to move goto-c elsewhere
+    (define-key map "g" 'swb-revert)
     (define-key map "j" 'swb-result-jump-to-column)
     (define-key map "s" 'swb-sort-rows)
     ;; TODO: add various export options: line/selection/table/column
