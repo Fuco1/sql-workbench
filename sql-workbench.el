@@ -6,7 +6,7 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 21st July 2015
-;; Package-requires: ((dash "2.10.0") (s "1.5.0"))
+;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0"))
 ;; Keywords: data
 
 ;; This program is free software; you can redistribute it and/or
@@ -30,6 +30,7 @@
 
 (require 'dash)
 (require 's)
+(require 'ov)
 
 (require 'sql)
 (require 'org)
@@ -284,6 +285,25 @@ Limits to 500 lines of output."
 
 ;;; Result mode
 
+(defun swb--make-header-overlay (window ov-start)
+  "Put a header line at the top of the result buffer.
+
+WINDOW is the window, OV-START is the first visible point in
+WINDOW."
+  (ov-clear 'swb-floating-header)
+  (when (> ov-start (point-min))
+    (let ((ov (make-overlay 0 1))
+          (str (buffer-substring-no-properties
+                (point-min)
+                (save-excursion
+                  (goto-char (point-min))
+                  (forward-line 3)
+                  (forward-char 1)
+                  (point)))))
+      (overlay-put ov 'swb-floating-header t)
+      (overlay-put ov 'display str)
+      (move-overlay ov ov-start (1+ ov-start)))))
+
 (defun swb--get-column-bounds ()
   "Return points in table which span the current column as a rectangle."
   (save-excursion
@@ -503,6 +523,7 @@ This means rerunning the query which produced it."
                            (:eval (when (use-region-p)
                                     (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))))
   (use-local-map swb-result-mode-map)
+  (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
   (toggle-truncate-lines 1))
 
