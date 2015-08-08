@@ -67,35 +67,26 @@ pass to the process."
   (delete-char -1)
   (insert "|"))
 
-(defun swb-mysql--display-result-sentinel (proc _state query)
-  "Pop to buffer with the output of PROC once it finished.
+(defun swb-mysql--format-result-sentinel (proc state callback)
+  "Sentinel for PROC once its STATE is exit.
 
 Format the table so that it is a valid `org-mode' table.
 
-QUERY is the current executed query."
+CALLBACK is called after the process has finished."
   ;; TODO: move this cleanup elsewhere, the display code could be
   ;; reused between backends
-  (with-current-buffer (process-buffer proc)
-    (goto-char (point-min))
-    (when (looking-at "^+-")
-      (swb-mysql--fix-table-to-org-hline))
-    (forward-line 2)
-    (when (looking-at "^+-")
-      (swb-mysql--fix-table-to-org-hline))
-    (goto-char (point-max))
-    (when (re-search-backward "^+-" nil t)
-      (swb-mysql--fix-table-to-org-hline))
-    (swb-result-mode)
-    (setq-local swb-query query)
-    (goto-char (point-min))
-    (let ((window (display-buffer (current-buffer))))
-      (with-selected-window window
-        (set-window-point window (point-min))
-        (forward-line 3)
-        (swb-result-forward-cell 1)
-        ;; make sure there is no gap... this moves the point to the
-        ;; 4th visible line of the window
-        (recenter 4)))))
+  (when (equal state "finished\n")
+    (with-current-buffer (process-buffer proc)
+      (goto-char (point-min))
+      (when (looking-at "^+-")
+        (swb-mysql--fix-table-to-org-hline))
+      (forward-line 2)
+      (when (looking-at "^+-")
+        (swb-mysql--fix-table-to-org-hline))
+      (goto-char (point-max))
+      (when (re-search-backward "^+-" nil t)
+        (swb-mysql--fix-table-to-org-hline))
+      (when callback (funcall callback)))))
 
 (defclass swb-connection-mysql (swb-iconnection)
   ()
@@ -119,10 +110,10 @@ QUERY is the current executed query."
 
 ;; The sentinel is responsible for setting up proper state for the
 ;; result buffer, such as setting `swb-query' to the current query.
-(defmethod swb-query-display-result ((this swb-connection-mysql) query buffer)
+(defmethod swb-query-format-result ((this swb-connection-mysql) query buffer &optional callback)
   (swb-query this query buffer :extra-args '("-t") :sentinel
-             (lambda (proc _state)
-               (swb-mysql--display-result-sentinel proc _state query))))
+             (lambda (proc state)
+               (swb-mysql--format-result-sentinel proc state callback))))
 
 (defconst swb-mysql--batch-switches (list "-B" "-N" "--column-names")
   "Switch to toggle batch-mode.")

@@ -209,6 +209,33 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
         (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))
       (get-buffer-create (concat "*swb-result-" (buffer-name) "*")))))
 
+(defun swb--result-callback (connection query)
+  "Return a result callback.
+
+This callback should be called in the result buffer after it has
+received the result set and after this was properly formatted.
+
+CONNECTION is the connection of the server where the result was
+obtained from.
+
+QUERY is the query which produced this result.
+
+WARNING: calling this function does nothing except return another
+function."
+  (lambda ()
+    (swb-result-mode)
+    (setq-local swb-connection connection)
+    (setq-local swb-query query)
+    (goto-char (point-min))
+    (let ((window (display-buffer (current-buffer))))
+      (with-selected-window window
+        (set-window-point window (point-min))
+        (forward-line 3)
+        (swb-result-forward-cell 1)
+        ;; make sure there is no gap... this moves the point to the
+        ;; 4th visible line of the window
+        (recenter 4)))))
+
 ;; TODO: add something to send multiple queries (region/buffer)
 ;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
 ;; TODO: warn before sending unsafe queries
@@ -219,10 +246,13 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
 
 If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (interactive "P")
-  (swb-query-display-result swb-connection (swb-get-query-at-point)
-                            (if new-result-buffer
-                                (generate-new-buffer "*result*")
-                              (swb--get-result-buffer))))
+  (let ((buffer (if new-result-buffer
+                    (generate-new-buffer "*result*")
+                  (swb--get-result-buffer)))
+        (query (swb-get-query-at-point)))
+    (swb-query-format-result
+     swb-connection query buffer
+     (swb--result-callback swb-connection query))))
 
 (defun swb--read-table ()
   "Completing read for a table."
@@ -237,7 +267,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 Limits to 500 lines of output."
   (interactive (list (swb--read-table)))
-  (swb-query-display-result swb-connection (format "SELECT * FROM `%s` LIMIT 500;" table)
+  (swb-query-format-result swb-connection (format "SELECT * FROM `%s` LIMIT 500;" table)
                             (get-buffer-create (format "*data-%s*" table))))
 
 ;; TODO: make this into a generic method
@@ -248,7 +278,7 @@ Limits to 500 lines of output."
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
-  (swb-query-display-result swb-connection (format "DESCRIBE `%s`;" table)
+  (swb-query-format-result swb-connection (format "DESCRIBE `%s`;" table)
                             (get-buffer-create (format "*schema-%s*" table))))
 
 (defun swb-store-connection-to-file ()
@@ -436,7 +466,9 @@ WINDOW."
 
 This means rerunning the query which produced it."
   (interactive)
-  (swb-query-display-result swb-connection swb-query (current-buffer)))
+  (swb-query-format-result
+   swb-connection swb-query (current-buffer)
+   (swb--result-callback swb-connection swb-query)))
 
 ;; TODO: sort ma blby regexp na datum, berie len timestamp <yyyy-mm-dd>... a napr ignoruje hodiny
 (defun swb-sort-rows ()

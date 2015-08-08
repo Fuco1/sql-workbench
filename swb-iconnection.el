@@ -92,8 +92,15 @@ ARGS is a plist with additional arguments:
 - :extra-args are extra arguments which should be passed to the
   underlying process.")
 
-(defmethod swb-query-display-result ((this swb-iconnection) query buffer)
-  "Run QUERY and display its result in a `swb-result-mode' BUFFER.")
+(defmethod swb-query-format-result ((this swb-iconnection) query buffer &optional callback)
+  "Run QUERY and format its result in a `swb-result-mode' compatible way.
+
+BUFFER is a buffer where the result is stored.
+
+The backend *must* make sure to run the CALLBACK function once
+the result is received in its entirety and properly rendered (as
+an org table).  One option is to wrap it into the process
+sentinel code and call when the state changes to finished.")
 
 (defmethod swb-query-fetch-column ((this swb-iconnection) query)
   "Run QUERY and return a list of values.
