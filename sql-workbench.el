@@ -393,6 +393,13 @@ WINDOW."
     (scroll-down)
     (org-table-goto-column cc)))
 
+;; TODO: overload
+;; - beginning-of-buffer
+;; - end-of-buffer
+;; - beginning-of-line
+;; - end-of-line
+;; to stay inside the cells.
+
 (defun swb-result-jump-to-column (column-name)
   "Jump to column named COLUMN-NAME."
   (interactive (list (completing-read "Column: "
@@ -473,9 +480,6 @@ This means rerunning the query which produced it."
 ;; - query the server for types of columns
 ;;   - distinguish dates, numbers, strings, blobs (we should also shorten these somehow!), nulls
 ;;   - primary keys in bold
-;; TODO: we should display sum and avg of current column/selected
-;; region in the modeline always.  Make sure it doesn't lag too much,
-;; so only run it on an idle timer, 0.5s or so should be good delay
 (defvar swb-result-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map org-mode-map)
@@ -504,10 +508,6 @@ This means rerunning the query which produced it."
     map)
   "Keymap for swb result mode.")
 
-;; TODO: the table line with column names should be a "floating"
-;; overlay which would always appear as the first line of the buffer
-;; (anchored with some silly TP) so that we always see what value a
-;; column is
 (define-derived-mode swb-result-mode org-mode "Swb result"
   "Mode for displaying results of sql queries."
   (read-only-mode 1)
