@@ -59,20 +59,23 @@ Has the same format as `mode-line-format'."
   :group 'sql-workbench)
 (put 'swb-header-line-format 'risky-local-variable t)
 
-(defvar swb-connection nil
-  "Connection to the server for this workbench.")
-
-;; TOOD: make this into a ring.
-(defvar swb-query nil
-  "Last executed query for this workbench.")
-
+;; These four exist to mirror file-local variables storing the
+;; connection info.
 (defvar swb-host nil "String determining host.")
 (defvar swb-port nil "Number determining port.")
 (defvar swb-user nil "String determining user.")
 (defvar swb-database nil "String determining database.")
 
+;; TODO: move these state variables into a defstruct.
 (defvar swb-result-buffer nil
   "Result buffer for this workbench.")
+(defvar swb-count 0 ;; only makes sense for the "data" views.
+  "Number of items in the current table.")
+(defvar swb-connection nil
+  "Connection to the server for this workbench.")
+;; TOOD: make this into a ring.
+(defvar swb-query nil
+  "Last executed query for this workbench.")
 
 (defun swb--get-default-host ()
   "Get default host for this buffer.
@@ -262,16 +265,21 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (completing-read "Table: " (swb-get-tables swb-connection) nil t nil nil (symbol-name (symbol-at-point))))
 
 ;; TODO: make this into a generic method
-;; TODO: show how many lines in total are in the table (select count
-;; (*) from table).  This should be added to the result buffer's
-;; mode-line in some "extensible" way.
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
 Limits to 500 lines of output."
   (interactive (list (swb--read-table)))
-  (swb-query-display-result (format "SELECT * FROM `%s` LIMIT 500;" table)
-                            (get-buffer-create (format "*data-%s*" table))))
+  (let ((query (format "SELECT * FROM `%s` LIMIT 500;" table))
+        (buffer (get-buffer-create (format "*data-%s*" table)))
+        (connection swb-connection))
+    (swb-query-format-result
+     connection query buffer
+     (lambda ()
+       (funcall (swb--result-callback connection query))
+       (setq-local swb-count (swb-query-fetch-one
+                              connection
+                              (format "SELECT COUNT(*) FROM `%s`;" table)))))))
 
 ;; TODO: make this into a generic method
 ;; TODO: add a version to get `show create table'
@@ -579,7 +587,12 @@ This means rerunning the query which produced it."
                                               (org-table-current-column))))
                            "%b"
                            (:eval (when (use-region-p)
-                                    (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))))
+                                    (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))
+                           (:eval (when swb-count
+                                    ;; TODO: add a way to get the
+                                    ;; current number of rows (first
+                                    ;; variable)
+                                    (format "     (%s rows of %s total)" swb-count swb-count)))))
   (use-local-map swb-result-mode-map)
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
