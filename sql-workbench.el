@@ -236,6 +236,13 @@ function."
         ;; 4th visible line of the window
         (recenter 4)))))
 
+(defun swb-query-display-result (query buffer)
+  "Display result of QUERY in BUFFER."
+  (interactive)
+  (swb-query-format-result
+   swb-connection query buffer
+   (swb--result-callback swb-connection query)))
+
 ;; TODO: add something to send multiple queries (region/buffer)
 ;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
 ;; TODO: warn before sending unsafe queries
@@ -250,9 +257,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
                     (generate-new-buffer "*result*")
                   (swb--get-result-buffer)))
         (query (swb-get-query-at-point)))
-    (swb-query-format-result
-     swb-connection query buffer
-     (swb--result-callback swb-connection query))))
+    (swb-query-display-result query buffer)))
 
 (defun swb--read-table ()
   "Completing read for a table."
@@ -267,7 +272,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 Limits to 500 lines of output."
   (interactive (list (swb--read-table)))
-  (swb-query-format-result swb-connection (format "SELECT * FROM `%s` LIMIT 500;" table)
+  (swb-query-display-result (format "SELECT * FROM `%s` LIMIT 500;" table)
                             (get-buffer-create (format "*data-%s*" table))))
 
 ;; TODO: make this into a generic method
@@ -278,7 +283,7 @@ Limits to 500 lines of output."
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
-  (swb-query-format-result swb-connection (format "DESCRIBE `%s`;" table)
+  (swb-query-display-result (format "DESCRIBE `%s`;" table)
                             (get-buffer-create (format "*schema-%s*" table))))
 
 (defun swb-store-connection-to-file ()
@@ -466,9 +471,7 @@ WINDOW."
 
 This means rerunning the query which produced it."
   (interactive)
-  (swb-query-format-result
-   swb-connection swb-query (current-buffer)
-   (swb--result-callback swb-connection swb-query)))
+  (swb-query-display-result swb-query (current-buffer)))
 
 ;; TODO: sort ma blby regexp na datum, berie len timestamp <yyyy-mm-dd>... a napr ignoruje hodiny
 (defun swb-sort-rows ()
