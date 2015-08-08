@@ -199,8 +199,6 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
                  (error (point-max))))))
     (buffer-substring-no-properties beg end)))
 
-;; TODO: if user renames the window and there's no `workbench' in the
-;; name, just append the word `result' instead.
 (defun swb--get-result-buffer ()
   "Return the result buffer for this workbench."
   (if (buffer-live-p swb-result-buffer)
