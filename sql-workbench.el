@@ -184,14 +184,14 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
 (defun swb-get-query-at-point ()
   "Get query at point."
   (let ((beg (save-excursion
-               (condition-case err
+               (condition-case _err
                    (progn
                      (while (not (and (re-search-backward ";")
                                       (not (nth 4 (syntax-ppss))))))
                      (point))
                  (error (point-min)))))
         (end (save-excursion
-               (condition-case err
+               (condition-case _err
                    (progn
                      (while (not (and (re-search-forward ";")
                                       (not (nth 4 (syntax-ppss))))))
