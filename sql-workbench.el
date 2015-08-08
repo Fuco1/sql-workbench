@@ -393,12 +393,33 @@ WINDOW."
     (scroll-down)
     (org-table-goto-column cc)))
 
-;; TODO: overload
-;; - beginning-of-buffer
-;; - end-of-buffer
-;; - beginning-of-line
-;; - end-of-line
-;; to stay inside the cells.
+(defun swb-beginning-of-buffer ()
+  "Go to the first line of the result set."
+  (interactive)
+  (let ((cc (org-table-current-column)))
+    (goto-char (point-min))
+    (forward-line 3)
+    (org-table-goto-column cc)))
+
+(defun swb-end-of-buffer ()
+  "Go to the last line of the result set."
+  (interactive)
+  (let ((cc (org-table-current-column)))
+    (goto-char (point-max))
+    (forward-line -2)
+    (org-table-goto-column cc)))
+
+(defun swb-beginning-of-line ()
+  "Go to the first column of current row."
+  (interactive)
+  (org-table-goto-column 1)
+  (skip-syntax-forward " "))
+
+(defun swb-end-of-line ()
+  "Go to the last column of current row."
+  (interactive)
+  (org-table-goto-column (length (swb--result-get-column-names)))
+  (skip-syntax-forward " "))
 
 (defun swb-result-jump-to-column (column-name)
   "Jump to column named COLUMN-NAME."
@@ -483,6 +504,10 @@ This means rerunning the query which produced it."
 (defvar swb-result-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map org-mode-map)
+    (define-key map [remap beginning-of-buffer] 'swb-beginning-of-buffer)
+    (define-key map [remap beginning-of-line] 'swb-beginning-of-line)
+    (define-key map [remap end-of-buffer] 'swb-end-of-buffer)
+    (define-key map [remap end-of-line] 'swb-end-of-line)
     (define-key map "+" 'org-table-sum)
     (define-key map "%" 'swb-org-table-avg)
     (define-key map "f" 'swb-result-forward-cell)
