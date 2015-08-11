@@ -67,6 +67,7 @@ Has the same format as `mode-line-format'."
 (defvar swb-database nil "String determining database.")
 
 ;; TODO: move these state variables into a defstruct.
+;; TODO: remove this variable?
 (defvar swb-result-buffer nil
   "Result buffer for this workbench.")
 (defvar swb-count 0 ;; only makes sense for the "data" views.
