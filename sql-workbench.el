@@ -163,11 +163,11 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
 Open new clean workbench with the same connection details."
   (interactive)
   (let* ((buffer-name (generate-new-buffer-name "*swb-workbench*"))
-         (conncetion (clone swb-connection)))
+         (connection (clone swb-connection)))
     ;; TODO: abstract this piece and the same code in swb-new-workbench-mysql
     (with-current-buffer (get-buffer-create buffer-name)
       (swb-mode)
-      (set (make-local-variable 'swb-connection) conncetion)
+      (set (make-local-variable 'swb-connection) connection)
       (pop-to-buffer (current-buffer)))))
 
 ;; TODO: add a function to change the active database
@@ -417,10 +417,23 @@ WINDOW."
 (defun swb-result-down-cell (&optional arg)
   "Go down ARG cells."
   (interactive "p")
-  (let ((cc (org-table-current-column)))
-    (forward-line arg)
-    (org-table-goto-column cc)
-    (skip-syntax-forward " ")))
+  (cond
+   ((<= (line-number-at-pos) 3)
+    (let ((cc (current-column)))
+      (goto-char (point-min))
+      (forward-line 3)
+      (forward-char cc)
+      (re-search-backward "|")
+      (forward-char 1))
+    (skip-syntax-forward " "))
+   ((not (save-excursion
+           (beginning-of-line 2)
+           (or (not (org-at-table-p))
+               (org-at-table-hline-p))))
+    (let ((cc (org-table-current-column)))
+      (beginning-of-line 2)
+      (org-table-goto-column cc)
+      (skip-syntax-forward " ")))))
 
 (defun swb-result-down-page ()
   "Scroll down half a page of results."
