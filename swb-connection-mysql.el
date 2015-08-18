@@ -51,6 +51,7 @@ QUERY is the query, CONNECTION is an instance of
 pass to the process."
   (-concat extra-args
            (list "-A"
+                 "--column-type-info"
                  "-e" query
                  "-h" (oref connection host)
                  "-P" (number-to-string (oref connection port))
@@ -68,6 +69,28 @@ pass to the process."
   (delete-char -1)
   (insert "|"))
 
+;; Field   4:  `name`
+;; Catalog:    `def`
+;; Database:   `test`
+;; Table:      `b`
+;; Org_table:  `users`
+;; Type:       VAR_STRING
+;; Collation:  utf8_general_ci (33)
+;; Length:     765
+;; Max_length: 11
+;; Decimals:   0
+;; Flags:      NOT_NULL NO_DEFAULT_VALUE
+
+(defun swb-mysql--process-metadata (raw-metadata)
+  "Parse metadata."
+  (let (r)
+    (with-temp-buffer
+      (insert raw-metadata)
+      (goto-char (point-min))
+      (while (re-search-forward "Type:[[:space:]]*\\(.*?\\)$" nil t)
+        (push (match-string 1) r)))
+    (nreverse r)))
+
 (defun swb-mysql--format-result-sentinel (proc state callback)
   "Sentinel for PROC once its STATE is exit.
 
@@ -79,15 +102,23 @@ CALLBACK is called after the process has finished."
   (when (equal state "finished\n")
     (with-current-buffer (process-buffer proc)
       (goto-char (point-min))
-      (when (looking-at "^+-")
-        (swb-mysql--fix-table-to-org-hline))
-      (forward-line 2)
-      (when (looking-at "^+-")
-        (swb-mysql--fix-table-to-org-hline))
-      (goto-char (point-max))
-      (when (re-search-backward "^+-" nil t)
-        (swb-mysql--fix-table-to-org-hline))
-      (when callback (funcall callback)))))
+      (let* ((raw-metadata (delete-and-extract-region
+                            (point)
+                            (save-excursion
+                              (re-search-forward "^+-" nil t)
+                              (backward-char 2)
+                              (point)))))
+        (when (looking-at "^+-")
+          (swb-mysql--fix-table-to-org-hline))
+        (forward-line 2)
+        (when (looking-at "^+-")
+          (swb-mysql--fix-table-to-org-hline))
+        (goto-char (point-max))
+        (when (re-search-backward "^+-" nil t)
+          (swb-mysql--fix-table-to-org-hline))
+        (setq-local swb-metadata
+                    (swb-mysql--process-metadata raw-metadata))
+        (when callback (funcall callback))))))
 
 (defclass swb-connection-mysql (swb-iconnection)
   ()

@@ -77,6 +77,9 @@ Has the same format as `mode-line-format'."
 ;; TOOD: make this into a ring.
 (defvar swb-query nil
   "Last executed query for this workbench.")
+(defvar swb-metadata nil
+  "Metadata for the last returned result set.")
+(put 'swb-metadata 'permanent-local t)
 
 (defun swb--get-default-host ()
   "Get default host for this buffer.
