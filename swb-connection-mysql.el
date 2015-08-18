@@ -40,7 +40,8 @@
   (with-current-buffer buffer
     (read-only-mode -1)
     (erase-buffer)
-    (fundamental-mode)))
+    (kill-local-variable 'font-lock-defaults)
+    (kill-local-variable 'font-lock-keywords)))
 
 (defun swb-mysql--prepare-cmd-args (query connection extra-args)
   "Prepare the argument list.
