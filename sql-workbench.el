@@ -253,6 +253,7 @@ function."
 ;; TODO: warn before sending unsafe queries
 ;; TODO: add a version which replaces the SELECT clause with count(*)
 ;; so you can see only the number of results
+;; TODO: automatically call `swb-reconnect' if connection is nil
 (defun swb-send-current-query (&optional new-result-buffer)
   "Send the query under the cursor to the connection of current buffer.
 
