@@ -401,7 +401,11 @@ WINDOW."
 (defun swb-result-forward-cell (&optional arg)
   "Go forward ARG cells."
   (interactive "p")
+  (setq arg (or arg 1))
   (org-table-goto-column (+ arg (org-table-current-column)))
+  (skip-syntax-forward " ")
+  (when (looking-at-p "^|")
+    (forward-char 1))
   (skip-syntax-forward " "))
 
 (defun swb-result-backward-cell (&optional arg)
