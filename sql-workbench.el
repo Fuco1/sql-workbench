@@ -298,9 +298,11 @@ Limits to `swb-show-data-row-page-size' lines of output."
      connection query buffer
      (lambda ()
        (funcall (swb--result-callback connection query))
-       (setq-local swb-count (swb-query-fetch-one
-                              connection
-                              (format "SELECT COUNT(*) FROM `%s`;" table)))))))
+       (setq-local swb-count
+                   (string-to-number
+                    (swb-query-fetch-one
+                     connection
+                     (format "SELECT COUNT(*) FROM `%s`;" table))))))))
 
 ;; TODO: make this into a generic method
 ;; TODO: add a version to get `show create table'
