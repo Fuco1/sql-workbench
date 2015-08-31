@@ -312,6 +312,7 @@ Limits to `swb-show-data-row-page-size' lines of output."
                      (format "SELECT COUNT(*) FROM `%s`;" table))))))))
 
 (defun swb-show-number-of-rows-in-table (table)
+  "Echo number of rows in TABLE."
   (interactive (list (swb--read-table)))
   (let ((n (swb-query-fetch-one
             swb-connection
