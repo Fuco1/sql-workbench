@@ -319,6 +319,8 @@ Limits to 500 lines of output."
     (define-key map (kbd "C-c C-d") 'swb-show-data-in-table)
     (define-key map (kbd "C-c C-t") 'swb-describe-table)
     (define-key map (kbd "C-c C-c") 'swb-send-current-query)
+    (define-key map (kbd "C-c C-r") 'swb-reconnect)
+    (define-key map (kbd "C-c C-s") 'swb-store-connection-to-file)
     map)
   "Keymap for swb mode.")
 
