@@ -59,6 +59,14 @@ Has the same format as `mode-line-format'."
   :group 'sql-workbench)
 (put 'swb-header-line-format 'risky-local-variable t)
 
+(defcustom swb-show-data-row-page-size 500
+  "How many rows should we retrieve with `swb-show-data-in-table'.
+
+This number represents a \"page\" of data.  Each additional page
+loaded loads this many rows."
+  :type 'integer
+  :group 'sql-workbench)
+
 ;; These four exist to mirror file-local variables storing the
 ;; connection info.
 (defvar swb-host nil "String determining host.")
@@ -281,9 +289,9 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
-Limits to 500 lines of output."
+Limits to `swb-show-data-row-page-size' lines of output."
   (interactive (list (swb--read-table)))
-  (let ((query (format "SELECT * FROM `%s` LIMIT 500;" table))
+  (let ((query (format "SELECT * FROM `%s` LIMIT %d;" table swb-show-data-row-page-size))
         (buffer (get-buffer-create (format "*data-%s*" table)))
         (connection swb-connection))
     (swb-query-format-result
