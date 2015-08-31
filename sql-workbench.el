@@ -307,12 +307,12 @@ Limits to 500 lines of output."
 (defun swb-store-connection-to-file ()
   "Store connection details as file-local variables."
   (interactive)
-  (when (swb-iconnection-child-p swb-connection)
-    (add-file-local-variable 'swb-host (swb-get-host swb-connection))
-    (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
-    (add-file-local-variable 'swb-user (swb-get-user swb-connection))
-    (add-file-local-variable 'swb-database (swb-get-database swb-connection))))
-
+  (save-excursion
+    (when (swb-iconnection-child-p swb-connection)
+     (add-file-local-variable 'swb-host (swb-get-host swb-connection))
+     (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
+     (add-file-local-variable 'swb-user (swb-get-user swb-connection))
+     (add-file-local-variable 'swb-database (swb-get-database swb-connection)))))
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map sql-mode-map)
