@@ -253,7 +253,8 @@ function."
    swb-connection query buffer
    (swb--result-callback swb-connection query)))
 
-;; TODO: add something to send multiple queries (region/buffer)
+;; TODO: add something to send multiple queries (region/buffer).  If a
+;; region is active, send the region instead of the query.
 ;; TODO: figure out how to show progress bar (i.e. which query is being executed ATM)
 ;; TODO: warn before sending unsafe queries
 ;; TODO: add a version which replaces the SELECT clause with count(*)
@@ -313,6 +314,10 @@ Limits to 500 lines of output."
      (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
      (add-file-local-variable 'swb-user (swb-get-user swb-connection))
      (add-file-local-variable 'swb-database (swb-get-database swb-connection)))))
+
+;; TODO: add function to explain current query
+;; TODO: add function to list all tables/objects in the database
+;; TODO: add something to navigate queries (beg/end-of-defun style)
 (defvar swb-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map sql-mode-map)
