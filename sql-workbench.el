@@ -658,8 +658,8 @@ This means rerunning the query which produced it."
                                     (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))
                            (:eval (when swb-count
                                     (format "     (%s rows of %s total)"
-                                            (min swb-count swb-show-data-row-page-size)
-                                            swb-count)))))
+                                            (swb-format-number (min swb-count swb-show-data-row-page-size))
+                                            (swb-format-number swb-count))))))
   (use-local-map swb-result-mode-map)
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
