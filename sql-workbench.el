@@ -635,10 +635,9 @@ This means rerunning the query which produced it."
                            (:eval (when (use-region-p)
                                     (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))
                            (:eval (when swb-count
-                                    ;; TODO: add a way to get the
-                                    ;; current number of rows (first
-                                    ;; variable)
-                                    (format "     (%s rows of %s total)" swb-count swb-count)))))
+                                    (format "     (%s rows of %s total)"
+                                            (min swb-count swb-show-data-row-page-size)
+                                            swb-count)))))
   (use-local-map swb-result-mode-map)
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
