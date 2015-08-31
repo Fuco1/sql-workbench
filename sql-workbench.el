@@ -362,6 +362,21 @@ Limits to `swb-show-data-row-page-size' lines of output."
 
 ;;; Result mode
 
+(defun swb-format-number (n &optional delim)
+  "Format a number by adding thousand delimiters."
+  (setq delim (or delim " "))
+  (let ((n (cond
+            ((and (stringp n)
+                  (integerp (string-to-number n)))
+             (string-to-number n))
+            ((integerp n) n)
+            (t (error "Not an integer number."))))
+        (re nil))
+    (while (> n 0)
+      (push (mod n 1000) re)
+      (setq n (/ n 1000)))
+    (mapconcat 'number-to-string re delim)))
+
 (defun swb--make-header-overlay (window ov-start)
   "Put a header line at the top of the result buffer.
 
