@@ -286,6 +286,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 ;; TODO: open to new window when called with C-u
 ;; TODO: make this into a generic method
+;; TODO: add an option to load additional pages of data
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
@@ -297,6 +298,12 @@ Limits to `swb-show-data-row-page-size' lines of output."
     (swb-query-format-result
      connection query buffer
      (lambda ()
+       ;; Note: we don't need to keep a closure here because the outer
+       ;; lambda already makes a closure.  However, the function is
+       ;; most often called directly to produce the callback closure
+       ;; and not *from* another closure.  Therefore, the code looks a
+       ;; bit redundant here, but simplifies the call in most other
+       ;; places.
        (funcall (swb--result-callback connection query))
        (setq-local swb-count
                    (string-to-number
