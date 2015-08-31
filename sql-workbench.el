@@ -160,6 +160,11 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
   (let* ((connection (swb-connection-mysql (buffer-name) :host host :port port :user user :password password :database database)))
     (set (make-local-variable 'swb-connection) connection)))
 
+(defun swb-maybe-connect ()
+  "If there is no active conncetion, try to (re)connect."
+  (unless swb-connection
+    (call-interactively 'swb-reconnect)))
+
 (defun swb-clone ()
   "Clone this workbench.
 
@@ -253,12 +258,12 @@ function."
 ;; TODO: warn before sending unsafe queries
 ;; TODO: add a version which replaces the SELECT clause with count(*)
 ;; so you can see only the number of results
-;; TODO: automatically call `swb-reconnect' if connection is nil
 (defun swb-send-current-query (&optional new-result-buffer)
   "Send the query under the cursor to the connection of current buffer.
 
 If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (interactive "P")
+  (swb-maybe-connect)
   (let ((buffer (if new-result-buffer
                     (generate-new-buffer "*result*")
                   (swb--get-result-buffer)))
@@ -267,6 +272,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 
 (defun swb--read-table ()
   "Completing read for a table."
+  (swb-maybe-connect)
   (completing-read "Table: " (swb-get-tables swb-connection) nil t nil nil (--when-let (symbol-at-point) (symbol-name it))))
 
 ;; TODO: open to new window when called with C-u
