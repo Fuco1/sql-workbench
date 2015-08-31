@@ -311,6 +311,15 @@ Limits to `swb-show-data-row-page-size' lines of output."
                      connection
                      (format "SELECT COUNT(*) FROM `%s`;" table))))))))
 
+(defun swb-show-number-of-rows-in-table (table)
+  (interactive (list (swb--read-table)))
+  (let ((n (swb-query-fetch-one
+            swb-connection
+            (format "SELECT COUNT(*) FROM `%s`;" table))))
+    (message "SWB: %s rows in %s"
+             (propertize (swb-format-number n) 'face 'font-lock-constant-face)
+             (propertize table 'face 'font-lock-comment-face))))
+
 ;; TODO: make this into a generic method
 ;; TODO: add a version to get `show create table'
 ;; TODO: show index from <table> shows more detailed information about
@@ -343,6 +352,7 @@ Limits to `swb-show-data-row-page-size' lines of output."
     (define-key map (kbd "C-c C-c") 'swb-send-current-query)
     (define-key map (kbd "C-c C-r") 'swb-reconnect)
     (define-key map (kbd "C-c C-s") 'swb-store-connection-to-file)
+    (define-key map (kbd "C-c C-n") 'swb-show-number-of-rows-in-table)
     map)
   "Keymap for swb mode.")
 
