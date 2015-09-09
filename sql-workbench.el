@@ -661,6 +661,33 @@ This means rerunning the query which produced it."
     map)
   "Keymap for swb result mode.")
 
+(defun swb-get-metadata (property column)
+  "Get metadata PROPERTY for COLUMN.
+
+Column starts at 1."
+  (plist-get (cdr (nth (1- column) swb-metadata)) property))
+
+(defun swb-result-fontify-cell ()
+  "Fontify cell."
+  (backward-char 1)
+  ;; TODO: put "column" property on the text?
+  (let ((cc (org-table-current-column)))
+    (when (< 0 cc)
+      (let* ((current-type (swb-get-metadata :type cc))
+             ;; TODO: precompute this
+             (face (cond
+                    ((string-match-p "LONG\\|TINY" current-type)
+                     font-lock-builtin-face)
+                    ((string-match-p "DOUBLE" current-type)
+                     font-lock-keyword-face)
+                    ((string-match-p "STRING" current-type)
+                     font-lock-string-face)
+                    ((string-match-p "DATE" current-type)
+                     font-lock-function-name-face))))
+        (if (> (line-number-at-pos) 3)
+            face
+          'org-table)))))
+
 (define-derived-mode swb-result-mode org-mode "Swb result"
   "Mode for displaying results of sql queries."
   (read-only-mode 1)
@@ -682,7 +709,17 @@ This means rerunning the query which produced it."
   (use-local-map swb-result-mode-map)
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
-  (toggle-truncate-lines 1))
+  (toggle-truncate-lines 1)
+  (add-to-list 'org-font-lock-keywords
+               '(" \\(.+?\\) |"
+                 (1
+                  (swb-result-fontify-cell)
+                  t))
+               :append)
+  (add-to-list 'org-font-lock-keywords
+               '("|\\( *?NULL *\\)"
+                 (1 '(:background "#e6a8df" :foreground "black") t))
+               :append))
 
 (provide 'sql-workbench)
 ;;; sql-workbench.el ends here
