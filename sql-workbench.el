@@ -160,6 +160,10 @@ connection when we query for the list of database."
                                     nil t nil nil (swb--get-default-database))))
     (list host (string-to-number port) user password database)))
 
+;; TODO: add a list of named predefined connections I could pick
+;; instead of host (like an alias which would expand to the other
+;; settings)
+;; TODO: make this generic/connection type independent
 (defun swb-reconnect (host port user password database)
   "Reconnect this workbench.
 
@@ -326,6 +330,10 @@ Limits to `swb-show-data-row-page-size' lines of output."
 ;; TODO: show index from <table> shows more detailed information about
 ;; keys, maybe we could merge this and the `describe table' outputs
 ;; into one?
+;; TODO: add "table editor", ideally from the describe window we
+;; should be able to add columns and it should give us preview of
+;; "alter table" code which we could then submit (and it would refresh
+;; the description)
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
