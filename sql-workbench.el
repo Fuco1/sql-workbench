@@ -403,6 +403,9 @@ Limits to `swb-show-data-row-page-size' lines of output."
       (setq n (/ n 1000)))
     (mapconcat 'number-to-string re delim)))
 
+;; TODO: shrink headers on wide columns (for example a column full of
+;; zeroes with long name takes up too much space) and put the current
+;; column name in the modeline.
 (defun swb--make-header-overlay (window ov-start)
   "Put a header line at the top of the result buffer.
 
