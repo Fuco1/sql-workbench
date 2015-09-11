@@ -291,6 +291,13 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 ;; TODO: open to new window when called with C-u
 ;; TODO: make this into a generic method
 ;; TODO: add an option to load additional pages of data
+;; TODO: add an option to "hyperlink" to another table using the id at
+;; point.  For example, with a point at a column foreing_key of table
+;; tags, we should run "select * from tags where foreing_key =
+;; <value-under-point>".  We should also ask for additional where
+;; constraints if called with C-u?  We should also support the
+;; convention that foreign_table_id links to the column id in
+;; foreign_table if it is not marked as foreign in the table.
 (defun swb-show-data-in-table (table)
   "Show data in TABLE.
 
