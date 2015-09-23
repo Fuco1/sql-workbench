@@ -100,7 +100,10 @@ BUFFER is a buffer where the result is stored.
 The backend *must* make sure to run the CALLBACK function once
 the result is received in its entirety and properly rendered (as
 an org table).  One option is to wrap it into the process
-sentinel code and call when the state changes to finished.")
+sentinel code and call when the state changes to finished.
+
+The CALLBACK function takes one argument, t or nil indicating if
+the query ended successfully (t) or with an error (nil).")
 
 (defmethod swb-query-fetch-column ((this swb-iconnection) query)
   "Run QUERY and return a list of values.

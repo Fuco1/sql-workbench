@@ -245,19 +245,20 @@ QUERY is the query which produced this result.
 
 WARNING: calling this function does nothing except return another
 function."
-  (lambda ()
+  (lambda (status)
     (swb-result-mode)
     (setq-local swb-connection connection)
     (setq-local swb-query query)
     (goto-char (point-min))
-    (let ((window (display-buffer (current-buffer))))
-      (with-selected-window window
-        (set-window-point window (point-min))
-        (forward-line 3)
-        (swb-result-forward-cell 1)
-        ;; make sure there is no gap... this moves the point to the
-        ;; 4th visible line of the window
-        (recenter 4)))))
+    (when status
+      (let ((window (display-buffer (current-buffer))))
+        (with-selected-window window
+          (set-window-point window (point-min))
+          (forward-line 3)
+          (swb-result-forward-cell 1)
+          ;; make sure there is no gap... this moves the point to the
+          ;; 4th visible line of the window
+          (recenter 4))))))
 
 (defun swb-query-display-result (query buffer)
   "Display result of QUERY in BUFFER."

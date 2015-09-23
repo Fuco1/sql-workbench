@@ -135,7 +135,7 @@ CALLBACK is called after the process has finished."
           (swb-mysql--fix-table-to-org-hline))
         (setq-local swb-metadata
                     (swb-mysql--process-metadata raw-metadata))
-        (when callback (funcall callback))))))
+        (when callback (funcall callback (equal state "finished\n")))))))
 
 (defclass swb-connection-mysql (swb-iconnection)
   ()
