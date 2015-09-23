@@ -65,11 +65,6 @@ that.")
   :documentation
   "Connection interface for work with the database.")
 
-;; TODO: send the query with -vvv to get back selected/changed rows
-;; and time the query took.  This will require some light parsing on
-;; our part.  This will also help in case of empty result set, when we
-;; can echo "0 rows" in the minibuffer (where the "result statistics"
-;; should go as well).
 ;; TODO: show status in the mode line or header line somehow.  The
 ;; sentinel can update it once the process is finished.
 (defmethod swb-query ((this swb-iconnection) query buffer &rest args)

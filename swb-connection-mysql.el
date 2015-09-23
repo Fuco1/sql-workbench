@@ -50,6 +50,8 @@ QUERY is the query, CONNECTION is an instance of
 `swb-connection-mysql', EXTRA-ARGS are any extra arguments to
 pass to the process."
   (-concat extra-args
+           (unless (member "-B" extra-args)
+             (list "-vv"))
            (list "-A"
                  "--column-type-info"
                  "-e" query
@@ -116,23 +118,36 @@ Format the table so that it is a valid `org-mode' table.
 CALLBACK is called after the process has finished."
   ;; TODO: move this cleanup elsewhere, the display code could be
   ;; reused between backends
-  (when (equal state "finished\n")
+  (when (or (equal state "finished\n")
+            (equal state "exited abnormally with code 1\n"))
     (with-current-buffer (process-buffer proc)
       (goto-char (point-min))
+      ;; TODO: make this parsing more robust
+      (delete-region (point) (progn
+                               (forward-line 3)
+                               (point)))
+      ;; TODO: better detection of where the metadata ends
       (let* ((raw-metadata (delete-and-extract-region
                             (point)
                             (save-excursion
-                              (re-search-forward "^+-" nil t)
-                              (backward-char 2)
+                              (when (re-search-forward "^+-" nil t)
+                                (backward-char 2))
                               (point)))))
-        (when (looking-at "^+-")
-          (swb-mysql--fix-table-to-org-hline))
-        (forward-line 2)
-        (when (looking-at "^+-")
-          (swb-mysql--fix-table-to-org-hline))
-        (goto-char (point-max))
-        (when (re-search-backward "^+-" nil t)
-          (swb-mysql--fix-table-to-org-hline))
+        (if (looking-at "^+-")
+            (progn
+              (swb-mysql--fix-table-to-org-hline)
+              (forward-line 2)
+              (when (looking-at "^+-")
+                (swb-mysql--fix-table-to-org-hline))
+              (goto-char (point-max))
+              (when (re-search-backward "^+-" nil t)
+                (swb-mysql--fix-table-to-org-hline))
+              (forward-line 1))
+          (delete-and-extract-region (point) (1+ (line-end-position))))
+        (if (looking-at "^ERROR")
+            (forward-line 1)
+          (message "%s" (delete-and-extract-region (point) (line-end-position))))
+        (delete-region (point) (point-max))
         (setq-local swb-metadata
                     (swb-mysql--process-metadata raw-metadata))
         (when callback (funcall callback (equal state "finished\n")))))))
