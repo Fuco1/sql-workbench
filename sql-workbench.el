@@ -288,7 +288,11 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
 (defun swb--read-table ()
   "Completing read for a table."
   (swb-maybe-connect)
-  (completing-read "Table: " (swb-get-tables swb-connection) nil t nil nil (--when-let (symbol-at-point) (symbol-name it))))
+  (let* ((tables (swb-get-tables swb-connection))
+         (default (--when-let (symbol-at-point)
+                    (let ((name (symbol-name it)))
+                      (when (member name tables) name)))))
+    (completing-read "Table: " tables nil t nil nil default)))
 
 ;; TODO: open to new window when called with C-u
 ;; TODO: make this into a generic method
