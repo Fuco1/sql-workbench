@@ -6,7 +6,7 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 21st July 2015
-;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0"))
+;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0") (shut-up "0.3.2"))
 ;; Keywords: data
 
 ;; This program is free software; you can redistribute it and/or
@@ -31,6 +31,7 @@
 (require 'dash)
 (require 's)
 (require 'ov)
+(require 'shut-up)
 
 (require 'sql)
 (require 'org)
@@ -730,6 +731,7 @@ Column starts at 1."
                '("|\\( *?NULL *\\)"
                  (1 '(:background "#e6a8df" :foreground "black") t))
                :append))
+  (shut-up (toggle-truncate-lines 1))
 
 (provide 'sql-workbench)
 ;;; sql-workbench.el ends here
