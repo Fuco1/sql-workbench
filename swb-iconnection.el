@@ -60,7 +60,13 @@ that.")
              :type string
              :protection :protected
              :accessor swb-get-database
-             :documentation "Database."))
+             :documentation "Database.")
+   (active-queries :initarg :activequeries
+                   :initform nil
+                   :protection :protected
+                   :accessor swb-get-active-queries
+                   :writer swb-set-active-queries
+                   :documentation "Actively running queries for this connection."))
   :abstract t
   :documentation
   "Connection interface for work with the database.")

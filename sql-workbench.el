@@ -46,13 +46,24 @@
   :group 'data
   :prefix "swb-")
 
-(defcustom swb-header-line-format '(:eval
-                                    (if (swb-iconnection-child-p swb-connection)
-                                        (concat (swb-get-user swb-connection)
-                                                "@" (swb-get-host swb-connection)
-                                                ":" (number-to-string (swb-get-port swb-connection))
-                                                " -- " (swb-get-database swb-connection))
-                                      "No connection"))
+(defcustom swb-header-line-format '(" "
+                                    (:eval
+                                     (if (swb-iconnection-child-p swb-connection)
+                                         (concat (swb-get-user swb-connection)
+                                                 "@" (swb-get-host swb-connection)
+                                                 ":" (number-to-string (swb-get-port swb-connection))
+                                                 " -- " (swb-get-database swb-connection))
+                                       "No connection"))
+                                    "  "
+                                    (:eval
+                                     (when (swb-iconnection-child-p swb-connection)
+                                       (-when-let (queries (swb-get-active-queries swb-connection))
+                                         (concat
+                                          "Active queries: "
+                                          (mapconcat
+                                           (lambda (x)
+                                             (format "[%s]" (s-trim x)))
+                                           queries " "))))))
   "The format expression for sql-workbench's header line.
 
 Has the same format as `mode-line-format'."
@@ -249,6 +260,13 @@ function."
     (swb-result-mode)
     (setq-local swb-connection connection)
     (setq-local swb-query query)
+    ;; TODO: this should be done in the connection handler,
+    ;; `swb-mysql--format-result-sentinel'.  We can't do it right now
+    ;; because the query is not know at that time in the mysql
+    ;; handler.  Create an object "query" to abstract this?
+    (swb-set-active-queries
+     connection
+     (-remove-item query (swb-get-active-queries connection)))
     (goto-char (point-min))
     (when status
       (let ((window (display-buffer (current-buffer))))
@@ -726,14 +744,15 @@ Column starts at 1."
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
   (shut-up (toggle-truncate-lines 1))
-  (font-lock-add-keywords nil
-                          '((" \\(.+?\\) |"
-                             (1
-                              (swb-result-fontify-cell)
-                              t))
-                            '("|\\( *?NULL *\\)"
-                              (1 '(:background "#e6a8df" :foreground "black") t)))
-                          :append))
+  ;; (font-lock-add-keywords nil
+  ;;                         '((" \\(.+?\\) |"
+  ;;                            (1
+  ;;                             (swb-result-fontify-cell)
+  ;;                             t))
+  ;;                           '("|\\( *?NULL *\\)"
+  ;;                             (1 '(:background "#e6a8df" :foreground "black") t)))
+  ;;                         :append)
+  )
 
 (provide 'sql-workbench)
 ;;; sql-workbench.el ends here

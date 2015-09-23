@@ -175,9 +175,12 @@ CALLBACK is called after the process has finished."
 ;; The sentinel is responsible for setting up proper state for the
 ;; result buffer, such as setting `swb-query' to the current query.
 (defmethod swb-query-format-result ((this swb-connection-mysql) query buffer &optional callback)
-  (swb-query this query buffer :extra-args '("-t") :sentinel
-             (lambda (proc state)
-               (swb-mysql--format-result-sentinel proc state callback))))
+  (let ((active-queries (swb-get-active-queries this)))
+    (push query active-queries)
+    (swb-set-active-queries this active-queries)
+    (swb-query this query buffer :extra-args '("-t") :sentinel
+               (lambda (proc state)
+                 (swb-mysql--format-result-sentinel proc state callback)))))
 
 (defconst swb-mysql--batch-switches (list "-B" "-N" "--column-names")
   "Switch to toggle batch-mode.")
