@@ -213,7 +213,7 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
                    (progn
                      (while (not (and (re-search-backward ";")
                                       (not (nth 4 (syntax-ppss))))))
-                     (point))
+                     (1+ (point)))
                  (error (point-min)))))
         (end (save-excursion
                (condition-case _err
