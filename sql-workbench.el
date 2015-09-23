@@ -85,7 +85,7 @@ loaded loads this many rows."
   "Connection to the server for this workbench.")
 ;; TOOD: make this into a ring.
 (defvar swb-query nil
-  "Last executed query for this workbench.")
+  "Last executed query for this result buffer.")
 (defvar swb-metadata nil
   "Metadata for the last returned result set.")
 (put 'swb-metadata 'permanent-local t)
