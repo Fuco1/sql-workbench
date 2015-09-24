@@ -332,7 +332,7 @@ Limits to `swb-show-data-row-page-size' lines of output."
         (connection swb-connection))
     (swb-query-format-result
      connection query buffer
-     (lambda ()
+     (lambda (_state)
        ;; Note: we don't need to keep a closure here because the outer
        ;; lambda already makes a closure.  However, the function is
        ;; most often called directly to produce the callback closure
