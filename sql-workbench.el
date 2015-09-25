@@ -420,12 +420,18 @@ Limits to `swb-show-data-row-page-size' lines of output."
                   (integerp (string-to-number n)))
              (string-to-number n))
             ((integerp n) n)
-            (t (error "Not an integer number."))))
-        (re nil))
-    (while (> n 0)
-      (push (mod n 1000) re)
-      (setq n (/ n 1000)))
-    (mapconcat 'number-to-string re delim)))
+            (t (error "Not an integer number.")))))
+    (mapconcat
+     'identity
+     (--map (apply 'string it)
+            (-map 'reverse
+                  (nreverse
+                   (-partition-all
+                    3
+                    (nreverse
+                     (string-to-list
+                      (number-to-string n)))))))
+     delim)))
 
 ;; TODO: shrink headers on wide columns (for example a column full of
 ;; zeroes with long name takes up too much space) and put the current
