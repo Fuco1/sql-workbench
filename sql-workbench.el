@@ -750,15 +750,14 @@ Column starts at 1."
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
   (shut-up (toggle-truncate-lines 1))
-  ;; (font-lock-add-keywords nil
-  ;;                         '((" \\(.+?\\) |"
-  ;;                            (1
-  ;;                             (swb-result-fontify-cell)
-  ;;                             t))
-  ;;                           '("|\\( *?NULL *\\)"
-  ;;                             (1 '(:background "#e6a8df" :foreground "black") t)))
-  ;;                         :append)
-  )
+  (font-lock-add-keywords nil
+                          '((" \\(.+?\\) |"
+                             (1
+                              (swb-result-fontify-cell)
+                              t))
+                            '("|\\( *?NULL *\\)"
+                              (1 '(:background "#e6a8df" :foreground "black") t)))
+                          :append))
 
 (provide 'sql-workbench)
 ;;; sql-workbench.el ends here
