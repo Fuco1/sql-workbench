@@ -297,6 +297,8 @@ function."
 If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (interactive "P")
   (swb-maybe-connect)
+  ;; TODO: move this `new-result-buffer' directly into
+  ;; `swb--get-result-buffer'
   (let ((buffer (if new-result-buffer
                     (generate-new-buffer "*result*")
                   (swb--get-result-buffer)))
@@ -701,6 +703,7 @@ This means rerunning the query which produced it."
     map)
   "Keymap for swb result mode.")
 
+;; TODO: make column optional and grab it from current buffer?
 (defun swb-get-metadata (property column)
   "Get metadata PROPERTY for COLUMN.
 
@@ -730,6 +733,8 @@ Column starts at 1."
             face
           'org-table)))))
 
+;; TODO: implement "query ring" so we can back and forth from the
+;; result buffer itself.
 (define-derived-mode swb-result-mode org-mode "Swb result"
   "Mode for displaying results of sql queries."
   (read-only-mode 1)
