@@ -705,7 +705,9 @@ This means rerunning the query which produced it."
   "Get metadata PROPERTY for COLUMN.
 
 Column starts at 1."
-  (plist-get (cdr (nth (1- column) swb-metadata)) property))
+  (if (eq property :name)
+      (car (nth (1- column) swb-metadata))
+    (plist-get (cdr (nth (1- column) swb-metadata)) property)))
 
 (defun swb-result-fontify-cell ()
   "Fontify cell."
