@@ -2,6 +2,7 @@
   (interactive (list 'interactive))
   (cl-case command
     (meta (company-swb--meta arg))
+    (sorted t)
     (annotation (company-swb--annotation arg))
     (interactive (company-begin-backend 'company-swb))
     (prefix (and (eq major-mode 'swb-mode)
@@ -9,21 +10,29 @@
     (candidates (let* ((tables (my-sql-get-tables (swb-get-query-at-point)))
                        (table-alias (save-excursion
                                       (backward-char (1+ (length arg)))
-                                      (company-grab-symbol)))
+                                      (when (looking-at "\\.")
+                                        (company-grab-symbol))))
                        (tables (or (--when-let (--first
                                                 (equal (cadr it) table-alias)
                                                 tables)
                                      (list it))
                                    tables)))
                   (--filter (string-prefix-p arg it)
-                            (-mapcat (-lambda ((table alias))
-                                       (--map (propertize
-                                               (plist-get it :Field)
-                                               'meta table)
-                                              (swb-query-fetch-plist
-                                               swb-connection
-                                               (format "describe %s" table))))
-                                     tables))))))
+                            (-concat
+                             (-mapcat (-lambda ((table alias))
+                                        (--map (propertize
+                                                (plist-get it :Field)
+                                                'meta table)
+                                               (swb-query-fetch-plist
+                                                swb-connection
+                                                (format "describe %s" table))))
+                                      tables)
+                             ;; TODO: this is often invalid... we need
+                             ;; to decide by context if we want to add
+                             ;; all tables or only those in `tables'
+                             (unless table-alias
+                               (--map (propertize it 'meta "table")
+                                      (swb-get-tables swb-connection)))))))))
 
 (defun company-swb--meta (candidate)
   (get-text-property 0 'meta candidate))
