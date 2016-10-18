@@ -62,9 +62,9 @@
 
 (defun my-sql-get-tables (sql)
   (let ((keywords (concat
-                   "[^`]\\<"
+                   "[^`]\\_<"
                    (regexp-opt
-                    (list "where" "order" "group" "join")) "\\>")))
+                    (list "where" "order" "group" "join")) "\\_>")))
     (with-temp-buffer
       (insert sql)
       (goto-char (point-min))
