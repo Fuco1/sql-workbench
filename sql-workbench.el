@@ -351,25 +351,18 @@ function."
       (save-excursion
         (org-table-goto-column 1)
         (let* ((raw-data (-map 's-trim (-flatten (swb--get-column-data))))
-               (col1 (ignore-errors (-map 'string-to-number raw-data)))
-               (pairs (-zip col1 (cdr col1)))
                (out-file (make-temp-file "swb-gnuplot" nil ".png")))
-          (when (and col1
-                     (< (length col1) 30)
-                     (-all? (-lambda ((x . y)) (<= (1+ x) y)) pairs))
-            (let ((data (-zip-with (-lambda (x y) (list x y))
-                                   ;; TODO: add column argument to
-                                   ;; `swb--get-column-data'
-                                   (save-excursion
-                                     (org-table-goto-column 1)
-                                     (-map 's-trim (-flatten (swb--get-column-data))))
-                                   (save-excursion
-                                     (org-table-goto-column 2)
-                                     (-map 's-trim (-flatten (swb--get-column-data)))))))
+          (when (and
+                 raw-data
+                 (or (ignore-errors (org-parse-time-string (car raw-data)))
+                     (-when-let*
+                         ((nums (ignore-errors (-map 'string-to-number raw-data)))
+                          (pairs (-zip nums (cdr nums))))
+                       (-all? (-lambda ((x . y)) (<= (1+ x) y)) pairs))))
+            (let ((data (--remove (equal it 'hline) (org-table-to-lisp))))
               (swb-gnuplot data out-file)
               (-let* ((inhibit-read-only t)
                       (image (create-image out-file nil nil :ascent 'center)))
-                (message "image size %s" (image-size image))
                 (goto-char (point-min))
                 (swb-insert-sliced-image image)))))))))
 
