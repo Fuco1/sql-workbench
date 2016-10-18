@@ -403,6 +403,8 @@ Limits to `swb-show-data-row-page-size' lines of output."
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
   (setq header-line-format swb-header-line-format)
+  (when (featurep 'flycheck)
+    (flycheck-add-mode 'sql-sqlint 'swb-mode))
   (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer)))
 
 ;;;###autoload (add-to-list 'auto-mode-alist '("\\.swb\\'" . swb-mode))
