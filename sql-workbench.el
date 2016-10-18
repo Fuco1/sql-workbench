@@ -475,6 +475,9 @@ WINDOW."
       (cons beg end))))
 
 ;; TODO: pridat podporu na zohladnenie regionu
+;; TODO: why does this return a list of singletons? Why not just a
+;; list.
+;; TODO: do we want multi-column support?
 (defun swb--get-column-data ()
   "Get data of current column."
   (-let* (((beg . end) (swb--get-column-bounds))
