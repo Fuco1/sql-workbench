@@ -251,6 +251,58 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
         (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))
       (get-buffer-create (concat "*swb-result-" (buffer-name) "*")))))
 
+;; copied from insert-sliced-image and modified for our needs
+(defun swb-insert-sliced-image (image &optional string area rows cols)
+  "Insert IMAGE into current buffer at point.
+IMAGE is displayed by inserting STRING into the current buffer
+with a `display' property whose value is the image.  The default
+STRING is a single space.
+AREA is where to display the image.  AREA nil or omitted means
+display it in the text area, a value of `left-margin' means
+display it in the left marginal area, a value of `right-margin'
+means display it in the right marginal area.
+The image is automatically split into ROWS x COLS slices."
+  (unless string (setq string " "))
+  (unless (eq (car-safe image) 'image)
+    (error "Not an image: %s" image))
+  (unless (or (null area) (memq area '(left-margin right-margin)))
+    (error "Invalid area %s" area))
+  (if area
+      (setq image (list (list 'margin area) image))
+    ;; Cons up a new spec equal but not eq to `image' so that
+    ;; inserting it twice in a row (adjacently) displays two copies of
+    ;; the image.  Don't try to avoid this by looking at the display
+    ;; properties on either side so that we DTRT more often with
+    ;; cut-and-paste.  (Yanking killed image text next to another copy
+    ;; of it loses anyway.)
+    (setq image (cons 'image (cdr image))))
+  (let ((x 0.0) (dx (/ 1.0001 (or cols 1)))
+        (y 0.0) (dy (/ 1.0001 (or rows 1))))
+    (goto-char (point-min))
+    (forward-line 3)
+    (while (< y 1.0)
+      (let ((empty-line (save-excursion
+                          (end-of-line)
+                          (= 0 (current-column)))))
+        (while (< x 1.0)
+          (end-of-line)
+          (when empty-line
+            (insert (make-string (save-excursion
+                                   (goto-char (point-min))
+                                   (end-of-line)
+                                   (current-column)) ? )))
+          (let ((start (point)))
+            (insert string)
+            (add-text-properties start (point)
+                                 `(display ,(list (list 'slice x y dx dy) image)
+                                           rear-nonsticky (display)))
+            (setq x (+ x dx))))
+        (setq x 0.0
+              y (+ y dy))
+        (if empty-line
+            (insert "\n")
+          (forward-line))))))
+
 (defun swb--result-callback (connection query &optional point source-buffer)
   "Return a result callback.
 
@@ -310,7 +362,32 @@ function."
               (swb-result-forward-cell 1)
               ;; make sure there is no gap... this moves the point to the
               ;; 4th visible line of the window
-              (recenter 4))))))))
+              (recenter 4)))))
+      (save-excursion
+        (org-table-goto-column 1)
+        (let* ((raw-data (-map 's-trim (-flatten (swb--get-column-data))))
+               (col1 (ignore-errors (-map 'string-to-number raw-data)))
+               (pairs (-zip col1 (cdr col1)))
+               (out-file (make-temp-file "swb-gnuplot" nil ".png")))
+          (when (and col1
+                     (< (length col1) 30)
+                     (-all? (-lambda ((x . y)) (<= (1+ x) y)) pairs))
+            (let ((data (-zip-with (-lambda (x y) (list x y))
+                                   ;; TODO: add column argument to
+                                   ;; `swb--get-column-data'
+                                   (save-excursion
+                                     (org-table-goto-column 1)
+                                     (-map 's-trim (-flatten (swb--get-column-data))))
+                                   (save-excursion
+                                     (org-table-goto-column 2)
+                                     (-map 's-trim (-flatten (swb--get-column-data)))))))
+              (swb-gnuplot data out-file)
+              (-let* ((inhibit-read-only t)
+                      (image (create-image out-file nil nil :ascent 80))
+                      ((_ . height) (image-size image t)))
+                (message "image size %s" (image-size image))
+                (goto-char (point-min))
+                (swb-insert-sliced-image image nil nil (/ (float height) 18))))))))))
 
 (defun swb-query-display-result (query buffer &optional point source-buffer)
   "Display result of QUERY in BUFFER.
