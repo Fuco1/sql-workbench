@@ -13,4 +13,4 @@ set terminal pngcairo size 700, termheight background rgb '#212526'
 set output outfile
 set timefmt '%Y-%m-%d'
 #plot infile using 1:2 w l title columnheader, '' using 1:3 w l title columnheader
-plot for [col=2:10] infile using 0:col w l title columnheader(col)
+plot for [col=2:10] infile using 0:col w linespoints pt 7 title columnheader(col)
