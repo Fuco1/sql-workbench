@@ -351,7 +351,8 @@ function."
       (save-excursion
         (org-table-goto-column 1)
         (let* ((raw-data (-map 's-trim (-flatten (swb--get-column-data))))
-               (out-file (make-temp-file "swb-gnuplot" nil ".png")))
+               ;; TODO: add cleanup
+               (outfile (make-temp-file "swb-gnuplot" nil ".png")))
           (when (and
                  raw-data
                  (or (ignore-errors (org-parse-time-string (car raw-data)))
@@ -360,9 +361,9 @@ function."
                           (pairs (-zip nums (cdr nums))))
                        (-all? (-lambda ((x . y)) (<= (1+ x) y)) pairs))))
             (let ((data (--remove (equal it 'hline) (org-table-to-lisp))))
-              (swb-gnuplot data out-file)
+              (swb-gnuplot data outfile)
               (-let* ((inhibit-read-only t)
-                      (image (create-image out-file nil nil :ascent 'center)))
+                      (image (create-image outfile nil nil :ascent 'center)))
                 (goto-char (point-min))
                 (swb-insert-sliced-image image)))))))))
 
