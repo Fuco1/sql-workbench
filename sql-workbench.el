@@ -355,6 +355,8 @@ function."
                (outfile (make-temp-file "swb-gnuplot" nil ".png")))
           (when (and
                  raw-data
+                 (not (equal "id" (caar swb-metadata)))
+                 (not (string-match-p "_id$" (caar swb-metadata)))
                  (or (ignore-errors (org-parse-time-string (car raw-data)))
                      (-when-let*
                          ((nums (ignore-errors (-map 'string-to-number raw-data)))
