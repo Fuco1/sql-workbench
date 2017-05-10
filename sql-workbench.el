@@ -695,7 +695,10 @@ This means rerunning the query which produced it."
     ;; TODO: add various export options: line/selection/table/column
     ;; as sql, csv, xml (??)
     ;; TODO: add function to copy the content of current cell
+    ;; TODO: put this under a nested map so we can have multiple
+    ;; export types
     (define-key map "c" 'swb-copy-column-csv)
+    (define-key map "e" 'swb-result-show-cell)
     (define-key map "q" 'quit-window)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
     (define-key map (kbd "<left>") 'swb-result-backward-cell)
@@ -737,6 +740,29 @@ Column starts at 1."
         (if (> (line-number-at-pos) 3)
             face
           'org-table)))))
+
+(defun swb-result-show-cell ()
+  "Open the cell in a separate window for editation.
+
+The buffer is opened in `json-mode'.
+
+No edits or changes to the content of this buffer are reflected
+back in the database or the result view.  This command merely
+presents a convenient way to work with the value of the current
+cell in a separate buffer."
+  (interactive)
+  (let ((content (s-trim (save-excursion (org-table-get-field))))
+        (type (swb-get-metadata :type (org-table-current-column))))
+    (pop-to-buffer
+     (with-current-buffer (get-buffer-create "*swb-result-edit-cell*")
+       (erase-buffer)
+       (insert
+        (cond
+         ((string-match-p "STRING" type)
+          (format "\"%s\"" content))
+         (t content)))
+       (json-mode)
+       (current-buffer)))))
 
 ;; TODO: implement "query ring" so we can back and forth from the
 ;; result buffer itself.
