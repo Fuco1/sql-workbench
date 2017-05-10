@@ -409,10 +409,6 @@ Limits to `swb-show-data-row-page-size' lines of output."
 
 ;;;###autoload (add-to-list 'auto-mode-alist '("\\.swb\\'" . swb-mode))
 
-;; TODO: Add a backend for company.  It should be possible to cache
-;; available tables/columns at various levels: never, between queries,
-;; only invalidate on user request.
-
 
 ;;; Result mode
 
