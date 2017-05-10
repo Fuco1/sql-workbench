@@ -200,7 +200,8 @@ CONNECTION is an instance of `swb-connection-mysql', QUERY is the
 SQL query."
   (with-temp-buffer
     (swb-query-synchronously connection query (current-buffer) :extra-args swb-mysql--batch-switches)
-    (--map (-map 's-trim (split-string it "\t" t)) (split-string (buffer-string) "\n" t))))
+    (let* ((rows (--map (-map 's-trim (split-string it "\t" t)) (split-string (buffer-string) "\n" t))))
+      (-drop-while (-lambda ((car)) (and (stringp car) (string-prefix-p "mysql:" car))) rows))))
 
 (defmethod swb-query-fetch-tuples ((this swb-connection-mysql) query)
   (cdr (swb-mysql--fetch-tuples-and-column-names this query)))
