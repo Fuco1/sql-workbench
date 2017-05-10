@@ -1,3 +1,38 @@
+;;; company-swb.el --- swb backend for company. -*- lexical-binding: t -*-
+
+;; Copyright (C) 2017 Matúš Goljer <matus.goljer@gmail.com>
+
+;; Author: Matúš Goljer <matus.goljer@gmail.com>
+;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
+;; Version: 0.0.1
+;; Created: 21st November 2016
+;; Package-requires: ((dash "2.10.0") (s "1.5.0"))
+;; Keywords: data
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License
+;; as published by the Free Software Foundation; either version 3
+;; of the License, or (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; TODO: Better error handling (font-lock the error)
+
+;;; Code:
+
+(require 'dash)
+(require 's)
+
+(require 'sql-workbench)
+
 (defun company-swb (command &optional arg &rest ignored)
   (interactive (list 'interactive))
   (cl-case command
@@ -79,3 +114,6 @@
                  (tables (-map 's-trim tables))
                  (tables (--map (split-string it " \\(as\\)?" t) tables)))
             tables))))))
+
+(provide 'company-swb)
+;;; company-swb.el ends here
