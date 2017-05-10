@@ -500,6 +500,28 @@ WINDOW."
       (kill-new (mapconcat 's-trim (-flatten col-data) ", "))
       (message "Copied %d rows." (length col-data)))))
 
+(defun swb-result-copy-row-sql ()
+  "Copy current row as SQL values clause."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (narrow-to-region (line-beginning-position) (line-end-position))
+      (let* ((data (car (org-table-to-lisp)))
+             (typed-data (-map (-lambda ((type . data))
+                                 ;; TODO: this is very crude
+                                 (if (string-match-p
+                                      (regexp-opt
+                                       (list
+                                        "STRING"
+                                        "DATE"
+                                        "DATETIME"
+                                        "BLOB"
+                                        )) type)
+                                     (format "'%s'" data)
+                                   data))
+                               (-zip (--map (plist-get (cdr it) :type) swb-metadata) data))))
+        (kill-new (format "(%s)" (mapconcat 'identity typed-data ", ")))))))
+
 (defun swb--result-get-column-names ()
   "Return all the columns in the result."
   (save-excursion
@@ -698,6 +720,7 @@ This means rerunning the query which produced it."
     ;; TODO: put this under a nested map so we can have multiple
     ;; export types
     (define-key map "c" 'swb-copy-column-csv)
+    (define-key map "r" 'swb-result-copy-row-sql)
     (define-key map "e" 'swb-result-show-cell)
     (define-key map "q" 'quit-window)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
