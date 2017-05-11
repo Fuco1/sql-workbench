@@ -104,7 +104,7 @@ pass to the process."
           (re-search-forward "Type:[[:space:]]*\\(.*?\\)$" nil t)
           (push :type properties)
           (push (match-string-no-properties 1) properties)
-          (re-search-forward "Flags:[[:space:]]*\\(.*?\\)$" nil t)
+          (re-search-forward "Flags:[ \t]*\\(.*?\\)$" nil t)
           (push :flags properties)
           (push (match-string-no-properties 1) properties)
           (push (cons name (nreverse properties)) r))))
