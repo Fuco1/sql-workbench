@@ -122,31 +122,38 @@ CALLBACK is called after the process has finished."
             (equal state "exited abnormally with code 1\n"))
     (with-current-buffer (process-buffer proc)
       (goto-char (point-min))
-      ;; TODO: make this parsing more robust
-      (delete-region (point) (progn
-                               (forward-line 3)
-                               (point)))
-      ;; TODO: better detection of where the metadata ends
-      (let* ((raw-metadata (delete-and-extract-region
-                            (point)
-                            (save-excursion
-                              (when (re-search-forward "^+-" nil t)
-                                (backward-char 2))
-                              (point)))))
-        (if (looking-at "^+-")
-            (progn
-              (swb-mysql--fix-table-to-org-hline)
-              (forward-line 2)
-              (when (looking-at "^+-")
-                (swb-mysql--fix-table-to-org-hline))
-              (goto-char (point-max))
-              (when (re-search-backward "^+-" nil t)
-                (swb-mysql--fix-table-to-org-hline))
-              (forward-line 1))
-          (delete-and-extract-region (point) (1+ (line-end-position))))
-        (if (looking-at "^ERROR")
-            (forward-line 1)
+      (delete-region (point) (search-forward "--------------" nil t 2))
+      (let* ((raw-metadata (progn
+                             (delete-region (point) (progn (skip-syntax-forward " ") (point)))
+                             (if (looking-at-p "^Field")
+                                 (delete-and-extract-region
+                                  (point)
+                                  (save-excursion
+                                    (when (re-search-forward "^+-" nil t)
+                                      (backward-char 2))
+                                    (point)))
+                               ""))))
+        (when (looking-at "^+-")
+          (progn
+            (swb-mysql--fix-table-to-org-hline)
+            (forward-line 2)
+            (when (looking-at "^+-")
+              (swb-mysql--fix-table-to-org-hline))
+            (goto-char (point-max))
+            (when (re-search-backward "^+-" nil t)
+              (swb-mysql--fix-table-to-org-hline))
+            (forward-line 1)))
+        ;; here we can be looking at the
+        ;; - Query OK
+        ;; - ERROR
+        ;; - [number] rows in set
+        (cond
+         ((looking-at-p "^[0-9]+ row")
           (message "%s" (delete-and-extract-region (point) (line-end-position))))
+         ((looking-at-p "^Query OK")
+          (message "%s" (delete-and-extract-region (point) (line-end-position))))
+         ((looking-at-p "^ERROR")
+          (message "%s" (delete-and-extract-region (point) (line-end-position)))))
         (delete-region (point) (point-max))
         (setq-local swb-metadata
                     (swb-mysql--process-metadata raw-metadata))
