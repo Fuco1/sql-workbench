@@ -6,7 +6,7 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 21st July 2015
-;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0") (shut-up "0.3.2"))
+;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0") (shut-up "0.3.2") (json-mode "1.6.0"))
 ;; Keywords: data
 
 ;; This program is free software; you can redistribute it and/or
@@ -32,10 +32,12 @@
 (require 's)
 (require 'ov)
 (require 'shut-up)
+(require 'json-mode)
 
 (require 'sql)
 (require 'org)
 (require 'org-table)
+(require 'org-src)
 
 (require 'swb-connection-mysql)
 
@@ -760,6 +762,16 @@ Column starts at 1."
             face
           'org-table)))))
 
+(defun swb-result-fontify-json (limit)
+  "Fontify cells which appear to hold JSON content with `json-mode'."
+  (while (re-search-forward (rx "|" (1+ " ") (or "{" "[{") 34) limit nil)
+    (let ((type (swb-get-metadata :type (org-table-current-column))))
+      (when (string-match-p type (regexp-opt (list "STRING" "BLOB")))
+        (org-src-font-lock-fontify-block
+         'json
+         (save-excursion (org-table-beginning-of-field 1) (point))
+         (save-excursion (org-table-end-of-field 1) (point)))))))
+
 (defun swb-result-show-cell ()
   "Open the cell in a separate window for editation.
 
@@ -806,7 +818,8 @@ cell in a separate buffer."
    '((" \\(.+?\\) |"
       (1 (swb-result-fontify-cell) t))
      ("|\\( *?NULL *\\)"
-      (1 '(:background "#e6a8df" :foreground "black") t)))
+      (1 '(:background "#e6a8df" :foreground "black") t))
+     (swb-result-fontify-json))
    :append)
   (add-hook 'window-scroll-functions 'swb--make-header-overlay nil t)
   (visual-line-mode -1)
