@@ -781,6 +781,7 @@ cell in a separate buffer."
           (format "\"%s\"" content))
          (t content)))
        (json-mode)
+       (json-mode-beautify)
        (current-buffer)))))
 
 ;; TODO: implement "query ring" so we can back and forth from the
