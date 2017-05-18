@@ -1,6 +1,6 @@
 ;;; sql-workbench.el --- Send queries to a database and work with results. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 Matúš Goljer <matus.goljer@gmail.com>
+;; Copyright (C) 2015-2017 Matúš Goljer <matus.goljer@gmail.com>
 
 ;; Author: Matúš Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>

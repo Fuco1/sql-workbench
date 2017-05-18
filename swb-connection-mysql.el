@@ -1,6 +1,6 @@
 ;;; swb-connection-mysql.el --- Implementation of connection for MySQL. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 Matúš Goljer <matus.goljer@gmail.com>
+;; Copyright (C) 2015-2017 Matúš Goljer <matus.goljer@gmail.com>
 
 ;; Author: Matúš Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
