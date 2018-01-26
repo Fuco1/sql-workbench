@@ -520,14 +520,16 @@ WINDOW."
                                (-zip (--map (plist-get (cdr it) :type) swb-metadata) data))))
         (kill-new (format "(%s)" (mapconcat 'identity typed-data ", ")))))))
 
-(defun swb--result-get-column-names ()
-  "Return all the columns in the result."
+(defun swb--result-get-column-names (&optional n)
+  "Return all the columns in the result.
+
+If optional argument N is set get the name of nth column."
   (save-excursion
     (goto-char (point-min))
     (forward-line 1)
     (let* ((header (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
            (columns (-map 's-trim (split-string header "|" t))))
-      columns)))
+      (if n (nth n columns) columns))))
 
 (defun swb-result-forward-cell (&optional arg)
   "Go forward ARG cells."
