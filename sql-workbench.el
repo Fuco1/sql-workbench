@@ -847,10 +847,59 @@ Column starts at 1."
          (save-excursion (org-table-beginning-of-field 1) (point))
          (save-excursion (org-table-end-of-field 1) (point)))))))
 
+(defvar-local swb-result-cell-position nil
+  "Position in the result buffer corresponding to the cell being edited.")
+
+(defvar-local swb-result-pending-updates nil
+  "List of pending updates for this result buffer.")
+
+(defun swb-cell-edit-submit-result ()
+  (interactive)
+  (let ((target-point swb-result-cell-position)
+        (replacement-value (json-read-from-string (buffer-string))))
+    (with-current-buffer swb-result-buffer
+      (save-excursion
+        (goto-char target-point)
+        (let ((inhibit-read-only t))
+          (org-table-get-field nil (format " %s " replacement-value))
+          (org-table-align)))
+      (goto-char (set-window-point (get-buffer-window (current-buffer)) target-point))
+      (let ((primary-keys (-find-indices (-lambda ((_ &keys :flags flags))
+                                           (and flags (string-match-p "PRI_KEY" flags)))
+                                         swb-metadata))
+            (row (car
+                  (save-excursion
+                    (save-restriction
+                      (narrow-to-region (line-beginning-position) (line-end-position))
+                      (org-table-to-lisp))))))
+        (push (list :keys (--zip-with (list :name it :value other)
+                                      (-select-by-indices primary-keys (swb--result-get-column-names))
+                                      (-select-by-indices primary-keys row))
+                    :name (swb--result-get-column-names (1- (org-table-current-column)))
+                    :value replacement-value)
+              swb-result-pending-updates)))
+    (remove-hook 'kill-buffer-hook 'swb-cell-edit-cancel 'local)
+    (kill-buffer-and-window)))
+
+(defun swb-cell-edit-cancel ()
+  (interactive))
+
+(defvar swb-cell-edit-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map json-mode-map)
+    (define-key map (kbd "C-c C-s") 'swb-cell-edit-submit-result)
+    (define-key map (kbd "C-x C-s") 'swb-cell-edit-submit-result)
+    (define-key map (kbd "C-c C-c") 'swb-cell-edit-submit-result)
+    (define-key map (kbd "C-c C-k") 'swb-cell-edit-cancel)
+    map))
+
+(define-derived-mode swb-cell-edit-mode json-mode "Swb cell edit"
+  "Mode for displaying and editing result cells.")
+
 (defun swb-result-show-cell ()
   "Open the cell in a separate window for editation.
 
-The buffer is opened in `json-mode'.
+The buffer is opened in `swb-cell-edit-mode'.
 
 No edits or changes to the content of this buffer are reflected
 back in the database or the result view.  This command merely
@@ -858,17 +907,22 @@ presents a convenient way to work with the value of the current
 cell in a separate buffer."
   (interactive)
   (let ((content (s-trim (save-excursion (org-table-get-field))))
-        (type (swb-get-metadata :type (org-table-current-column))))
+        (type (swb-get-metadata :type (org-table-current-column)))
+        (result-buffer (current-buffer))
+        (result-point (point)))
     (pop-to-buffer
      (with-current-buffer (get-buffer-create "*swb-result-edit-cell*")
        (erase-buffer)
        (insert
         (cond
-         ((string-match-p "STRING" type)
+         ((string-match-p (rx (or "STRING" "DATE")) type)
           (format "\"%s\"" content))
          (t content)))
-       (json-mode)
+       (swb-cell-edit-mode)
        (json-mode-beautify)
+       (setq-local swb-result-buffer result-buffer)
+       (setq-local swb-result-cell-position result-point)
+       (add-hook 'kill-buffer-hook 'swb-cell-edit-cancel nil 'local)
        (current-buffer)))))
 
 ;; TODO: implement "query ring" so we can back and forth from the
