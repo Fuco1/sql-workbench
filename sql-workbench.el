@@ -794,6 +794,7 @@ name from the column name by dropping the _id suffix."
     (define-key map "c" 'swb-copy-column-csv)
     (define-key map "r" 'swb-result-copy-row-sql)
     (define-key map "e" 'swb-result-show-cell)
+    (define-key map (kbd "C-c C-c") 'swb-result-submit)
     (define-key map "q" 'quit-window)
     (define-key map (kbd "<return>") 'swb-result-follow-foreign-key)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
@@ -856,12 +857,13 @@ Column starts at 1."
 (defun swb-cell-edit-submit-result ()
   (interactive)
   (let ((target-point swb-result-cell-position)
-        (replacement-value (json-read-from-string (buffer-string))))
+        (replacement-value-raw (buffer-string))
+        (replacement-value-table (json-read-from-string (buffer-string))))
     (with-current-buffer swb-result-buffer
       (save-excursion
         (goto-char target-point)
         (let ((inhibit-read-only t))
-          (org-table-get-field nil (format " %s " replacement-value))
+          (org-table-get-field nil (format " %s " replacement-value-table))
           (org-table-align)))
       (goto-char (set-window-point (get-buffer-window (current-buffer)) target-point))
       (let ((primary-keys (-find-indices (-lambda ((_ &keys :flags flags))
@@ -876,7 +878,7 @@ Column starts at 1."
                                       (-select-by-indices primary-keys (swb--result-get-column-names))
                                       (-select-by-indices primary-keys row))
                     :name (swb--result-get-column-names (1- (org-table-current-column)))
-                    :value replacement-value)
+                    :value replacement-value-raw)
               swb-result-pending-updates)))
     (remove-hook 'kill-buffer-hook 'swb-cell-edit-cancel 'local)
     (kill-buffer-and-window)))
@@ -924,6 +926,49 @@ cell in a separate buffer."
        (setq-local swb-result-cell-position result-point)
        (add-hook 'kill-buffer-hook 'swb-cell-edit-cancel nil 'local)
        (current-buffer)))))
+
+(defun swb--result-generate-update-for-row (table key data)
+  "Generate update query in TABLE for row matching KEY to DATA."
+  (let ((key-string
+         (mapconcat
+          (-lambda ((&plist :name name
+                            :value value))
+            (format "`%s` = %s" name value))
+          key
+          " AND "))
+        (data-string
+         (mapconcat
+          (-lambda ((&plist :name name
+                            :value value))
+            (format "`%s` = %s" name value))
+          data
+          ", ")))
+    (format "UPDATE `%s` SET %s WHERE %s" table data-string key-string)))
+
+(defun swb-result-update-table ()
+  "Generate update queries for all the pending changes in the current buffer."
+  (let* ((update-data
+          (-map (-lambda ((key . data))
+                  (cons key (-map 'cadr (-group-by (-lambda ((&plist :name name)) name)
+                                                   (-map 'cddr data)))))
+                (-group-by (-lambda ((&plist :keys keys)) keys) swb-result-pending-updates)))
+         (table (plist-get (cdar swb-metadata) :original-table))
+         (queries (-map (-lambda ((key . data))
+                          (swb--result-generate-update-for-row table key data))
+                        update-data)))
+    queries))
+
+(defun swb-result-submit ()
+  "Execute all pending updates in the current result buffer."
+  (interactive)
+  (let ((queries (swb-result-update-table)))
+    (-each queries
+      (lambda (query)
+        (when (y-or-n-p (format "Execute query: %s" query))
+          (swb-query-format-result
+           swb-connection query (generate-new-buffer " *swb-temp*")
+           (lambda (status) (kill-buffer))))))
+    (setq-local swb-result-pending-updates nil)))
 
 ;; TODO: implement "query ring" so we can back and forth from the
 ;; result buffer itself.
