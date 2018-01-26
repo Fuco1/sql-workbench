@@ -764,7 +764,7 @@ Column starts at 1."
 
 (defun swb-result-fontify-json (limit)
   "Fontify cells which appear to hold JSON content with `json-mode'."
-  (while (re-search-forward (rx "|" (1+ " ") (or "{" "[{") 34) limit nil)
+  (while (re-search-forward (rx "|" (1+ " ") (or "{" "[{") 34) limit t)
     (let ((type (swb-get-metadata :type (org-table-current-column))))
       (when (string-match-p type (regexp-opt (list "STRING" "BLOB")))
         (org-src-font-lock-fontify-block
