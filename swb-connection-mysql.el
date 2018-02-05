@@ -195,6 +195,8 @@ CALLBACK is called after the process has finished."
 (defmethod swb-query-fetch-column ((this swb-connection-mysql) query)
   (with-temp-buffer
     (swb-query-synchronously this query (current-buffer) :extra-args swb-mysql--batch-switches)
+    (goto-char (point-min))
+    (while (looking-at-p "^mysql:") (kill-region (point) (1+ (line-end-position))))
     (cdr (-map 's-trim (split-string (buffer-string) "\n" t)))))
 
 (defun swb-mysql--fetch-tuples-and-column-names (connection query)
