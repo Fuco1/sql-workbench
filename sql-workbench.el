@@ -311,9 +311,10 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   "Completing read for a table."
   (swb-maybe-connect)
   (let* ((tables (swb-get-tables swb-connection))
-         (default (--when-let (symbol-at-point)
-                    (let ((name (symbol-name it)))
-                      (when (member name tables) name)))))
+         (default (or (--when-let (symbol-at-point)
+                        (let ((name (symbol-name it)))
+                          (when (member name tables) name)))
+                      (car tables))))
     (completing-read "Table: " tables nil t nil nil default)))
 
 ;; TODO: open to new window when called with C-u
