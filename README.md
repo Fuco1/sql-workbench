@@ -8,7 +8,7 @@ Currently, only MySQL is supported.
 
 ## Connecting to a MySQL instance
 
-Run `M-x swb-connection-mysql`. It will prompt for `host`, `port`, `user`, `password`, and the database inside the MySQL server to use.
+Run `M-x swb-new-workbench-mysql`. It will prompt for `host`, `port`, `user`, `password`, and the database inside the MySQL server to use.
 
 The workbench buffer will open.
 
