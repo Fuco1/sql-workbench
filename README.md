@@ -22,6 +22,22 @@ The workbench buffer is the sql-workbench's main interface to the database. Here
 
 * `swb-show-data-in-table` (`C-c C-d`) prompts for a table name, and displays the first 500 entries in that table.
 
+Because the workbench buffer is just a regular buffer you can do all
+the usual things with it including saving it to a file and then
+reopening it later.  It is also autosaved and backed up (if this is
+enabled) so you don't have to worry about losing your work.
+
+You can store the current connection information (except password)
+using `swb-store-connection-to-file` (`C-c C-s`). The information will
+be appended as [file-local
+variables](https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html).
+Next time you open the file these will automatically become
+buffer-local.  If you then execute a statement sql-workbench will
+automatically reconnect using the stored connection information.  This
+makes resuming work between sessions super easy.
+
+## Using the results buffer
+
 # Integration with other packages
 
 ## company
