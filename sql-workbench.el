@@ -832,6 +832,16 @@ Column starts at 1."
 (defvar-local swb-result-pending-updates nil
   "List of pending updates for this result buffer.")
 
+;; TODO: this is not safe if we do not pull all the columns as it
+;; might only include one of the composite keys
+(defun swb--get-primary-keys ()
+  "Get the indices of primary keys of the current result set.
+
+Note that these might not represent the full key of the table."
+  (-find-indices (-lambda ((_ &keys :flags flags))
+                   (and flags (string-match-p "PRI_KEY" flags)))
+                 swb-metadata))
+
 (defun swb-cell-edit-submit-result ()
   (interactive)
   (let ((target-point swb-result-cell-position)
@@ -844,9 +854,7 @@ Column starts at 1."
           (org-table-get-field nil (format " %s " replacement-value-table))
           (org-table-align)))
       (goto-char (set-window-point (get-buffer-window (current-buffer)) target-point))
-      (let ((primary-keys (-find-indices (-lambda ((_ &keys :flags flags))
-                                           (and flags (string-match-p "PRI_KEY" flags)))
-                                         swb-metadata))
+      (let ((primary-keys (swb--get-primary-keys))
             (row (car
                   (save-excursion
                     (save-restriction
