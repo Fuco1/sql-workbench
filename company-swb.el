@@ -99,12 +99,12 @@
   (let ((keywords (concat
                    "[^`]\\_<"
                    (regexp-opt
-                    (list "where" "order" "group" "join")) "\\_>")))
+                    (list "where" "order" "group" "join" "set")) "\\_>")))
     (with-temp-buffer
       (insert sql)
       (goto-char (point-min))
       ;; get tables from `from'
-      (-when-let (beg (re-search-forward "from" nil t))
+      (-when-let (beg (re-search-forward (regexp-opt (list "from" "update")) nil t))
         (-when-let (end (or (when (re-search-forward keywords nil t)
                               (match-beginning 0))
                             (point-max)))
