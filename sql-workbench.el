@@ -859,6 +859,10 @@ Note that these might not represent the full key of the table."
                   (save-excursion
                     (save-restriction
                       (narrow-to-region (line-beginning-position) (line-end-position))
+                      ;; TODO: this has to be replaced by something
+                      ;; that is aware of the underlying types.  We
+                      ;; should probably add some better abstraction
+                      ;; for working with the result tables.
                       (org-table-to-lisp))))))
         (push (list :keys (--zip-with (list :name it :value other)
                                       (-select-by-indices primary-keys (swb--result-get-column-names))
