@@ -217,10 +217,9 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
       (set (make-local-variable 'swb-connection) connection)
       (pop-to-buffer (current-buffer)))))
 
-;; TODO: this might be connection-specific too, so we should probably
-;; move it to the class
-(defun swb-get-query-at-point ()
-  "Get query at point."
+
+(defun swb-get-query-bounds-at-point ()
+  "Get the bounds of query at point."
   (let ((beg (save-excursion
                (condition-case _err
                    (progn
@@ -235,6 +234,13 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
                                       (not (nth 4 (syntax-ppss))))))
                      (point))
                  (error (point-max))))))
+    (cons beg end)))
+
+;; TODO: this might be connection-specific too, so we should probably
+;; move it to the class
+(defun swb-get-query-at-point ()
+  "Get query at point."
+  (-let (((beg . end) (swb-get-query-bounds-at-point)))
     (buffer-substring-no-properties beg end)))
 
 (defun swb--get-result-buffer ()
@@ -245,7 +251,7 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
         (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))
       (get-buffer-create (concat "*swb-result-" (buffer-name) "*")))))
 
-(defun swb--result-callback (connection query)
+(defun swb--result-callback (connection query &optional point source-buffer)
   "Return a result callback.
 
 This callback should be called in the result buffer after it has
@@ -274,19 +280,42 @@ function."
                (< 0 (buffer-size (current-buffer))))
       (let ((window (display-buffer (current-buffer))))
         (with-selected-window window
-          (set-window-point window (point-min))
-          (forward-line 3)
-          (swb-result-forward-cell 1)
-          ;; make sure there is no gap... this moves the point to the
-          ;; 4th visible line of the window
-          (recenter 4))))))
+          ;; decide here if we want to inline the result or let it be
+          ;; in a separate window
+          (let* ((num-cols (length (swb--result-get-column-names)))
+                 (rows (save-excursion
+                         (org-table-goto-column 1)
+                         (swb--get-column-data)))
+                 (single-cell-p (and (= num-cols 1)
+                                     (= (length rows) 1))))
+            (if (and source-buffer
+                     point
+                     single-cell-p)
+                (progn
+                  (with-current-buffer source-buffer
+                    (save-excursion
+                      (goto-char point)
+                      (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                        (goto-char end)
+                        (when (looking-at " -- => \\(.*\\);")
+                          (delete-region (point) (match-end 0)))
+                        (insert (format " -- => %s;" (s-trim (caar rows)))))))
+                  (kill-buffer-and-window))
+              (set-window-point window (point-min))
+              (forward-line 3)
+              (swb-result-forward-cell 1)
+              ;; make sure there is no gap... this moves the point to the
+              ;; 4th visible line of the window
+              (recenter 4))))))))
 
-(defun swb-query-display-result (query buffer)
-  "Display result of QUERY in BUFFER."
+(defun swb-query-display-result (query buffer &optional point source-buffer)
+  "Display result of QUERY in BUFFER.
+
+POINT is current point in the workbench buffer."
   (interactive)
   (swb-query-format-result
    swb-connection query buffer
-   (swb--result-callback swb-connection query)))
+   (swb--result-callback swb-connection query point source-buffer)))
 
 ;; TODO: add something to send multiple queries (region/buffer).  If a
 ;; region is active, send the region instead of the query.
@@ -306,7 +335,7 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
                     (generate-new-buffer "*result*")
                   (swb--get-result-buffer)))
         (query (swb-get-query-at-point)))
-    (swb-query-display-result query buffer)))
+    (swb-query-display-result query buffer (point) (current-buffer))))
 
 (defun swb--read-table ()
   "Completing read for a table."
