@@ -270,7 +270,8 @@ function."
      connection
      (-remove-item query (swb-get-active-queries connection)))
     (goto-char (point-min))
-    (when status
+    (when (and status
+               (< 0 (buffer-size (current-buffer))))
       (let ((window (display-buffer (current-buffer))))
         (with-selected-window window
           (set-window-point window (point-min))
