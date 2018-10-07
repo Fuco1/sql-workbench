@@ -286,11 +286,11 @@ function."
                  (rows (save-excursion
                          (org-table-goto-column 1)
                          (swb--get-column-data)))
-                 (single-cell-p (and (= num-cols 1)
-                                     (= (length rows) 1))))
+                 (inlinep (and (= num-cols 1)
+                               (< (length rows) 8))))
             (if (and source-buffer
                      point
-                     single-cell-p)
+                     inlinep)
                 (progn
                   (with-current-buffer source-buffer
                     (save-excursion
@@ -299,7 +299,11 @@ function."
                         (goto-char end)
                         (when (looking-at " -- => \\(.*\\);")
                           (delete-region (point) (match-end 0)))
-                        (insert (format " -- => %s;" (s-trim (caar rows)))))))
+                        (insert (format " -- => %s;"
+                                        (let ((data (-map 's-trim (-flatten rows))))
+                                          (if (= (length rows) 1)
+                                              (car data)
+                                            (s-join ", " data))))))))
                   (kill-buffer-and-window))
               (set-window-point window (point-min))
               (forward-line 3)
