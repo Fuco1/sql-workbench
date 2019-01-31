@@ -727,6 +727,21 @@ This means rerunning the query which produced it."
                               (length numbers) sres))))
         sres))))
 
+;; TODO: read the actual foreign key metadata from table structure
+(defun swb-result-follow-foreign-key ()
+  "Follow the foreign key under point.
+
+If the foreign key is not declared we try to guess the base table
+name from the column name by dropping the _id suffix."
+  (interactive)
+  (let* ((col-name (swb-get-metadata :name (org-table-current-column))))
+    (when (string-suffix-p "_id" col-name)
+      (let ((base-table (replace-regexp-in-string "_id\\'" "" col-name))
+            (val (s-trim (save-excursion (org-table-get-field)))))
+        (swb-query-display-result
+         (format "SELECT * FROM %s WHERE id = %s" base-table val)
+         (current-buffer))))))
+
 ;; TODO: pridat podporu na editovanie riadkov priamo v result sete
 ;; TODO: add helpers to add rows to the table (M-RET)
 ;; TODO: add font-locking
@@ -758,6 +773,7 @@ This means rerunning the query which produced it."
     (define-key map "r" 'swb-result-copy-row-sql)
     (define-key map "e" 'swb-result-show-cell)
     (define-key map "q" 'quit-window)
+    (define-key map (kbd "<return>") 'swb-result-follow-foreign-key)
     (define-key map (kbd "<right>") 'swb-result-forward-cell)
     (define-key map (kbd "<left>") 'swb-result-backward-cell)
     (define-key map (kbd "<up>") 'swb-result-up-cell)
