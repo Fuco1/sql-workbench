@@ -104,7 +104,9 @@
       (insert sql)
       (goto-char (point-min))
       ;; get tables from `from'
-      (-when-let (beg (re-search-forward (regexp-opt (list "from" "update")) nil t))
+      (-when-let (beg (re-search-forward
+                       (regexp-opt (list "from" "update") 'symbols)
+                       nil t))
         (-when-let (end (or (when (re-search-forward keywords nil t)
                               (match-beginning 0))
                             (point-max)))
