@@ -256,6 +256,16 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
         (get-buffer-create (replace-regexp-in-string "workbench" "result" (buffer-name)))
       (get-buffer-create (concat "*swb-result-" (buffer-name) "*")))))
 
+(defun swb--remove-active-query (connection query)
+  "Update CONNECTION by removing QUERY from active queries."
+  ;; TODO: this should be done in the connection handler,
+  ;; `swb-mysql--format-result-sentinel'.  We can't do it right now
+  ;; because the query is not know at that time in the mysql handler.
+  ;; Create an object "query" to abstract this?
+  (swb-set-active-queries
+   connection
+   (-remove-item query (swb-get-active-queries connection))))
+
 (defun swb--result-callback (connection query &optional point source-buffer)
   "Return a result callback.
 
@@ -273,13 +283,7 @@ function."
     (swb-result-mode)
     (setq-local swb-connection connection)
     (setq-local swb-query query)
-    ;; TODO: this should be done in the connection handler,
-    ;; `swb-mysql--format-result-sentinel'.  We can't do it right now
-    ;; because the query is not know at that time in the mysql
-    ;; handler.  Create an object "query" to abstract this?
-    (swb-set-active-queries
-     connection
-     (-remove-item query (swb-get-active-queries connection)))
+    (swb--remove-active-query connection query)
     (goto-char (point-min))
     (when (and status
                (< 0 (buffer-size (current-buffer))))
@@ -973,13 +977,16 @@ cell in a separate buffer."
 (defun swb-result-submit ()
   "Execute all pending updates in the current result buffer."
   (interactive)
-  (let ((queries (swb-result-update-table)))
+  (let ((queries (swb-result-update-table))
+        (connection swb-connection))
     (-each queries
       (lambda (query)
         (when (y-or-n-p (format "Execute query: %s" query))
           (swb-query-format-result
-           swb-connection query (generate-new-buffer " *swb-temp*")
-           (lambda (status) (kill-buffer))))))
+           connection query (generate-new-buffer " *swb-temp*")
+           (lambda (status)
+             (swb--remove-active-query connection query)
+             (kill-buffer))))))
     (setq-local swb-result-pending-updates nil)))
 
 ;; TODO: implement "query ring" so we can back and forth from the
