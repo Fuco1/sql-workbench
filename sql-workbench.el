@@ -863,13 +863,19 @@ Column starts at 1."
 
 ;; TODO: this is not safe if we do not pull all the columns as it
 ;; might only include one of the composite keys
-(defun swb--get-primary-keys ()
+(defun swb--get-primary-keys-indices ()
   "Get the indices of primary keys of the current result set.
 
 Note that these might not represent the full key of the table."
   (-find-indices (-lambda ((_ &keys :flags flags))
                    (and flags (string-match-p "PRI_KEY" flags)))
                  swb-metadata))
+
+(defun swb--get-primary-keys ()
+  "Get the names of primary keys of the current result set.
+
+Note that these might not represent the full key of the table."
+  (-select-by-indices (swb--get-primary-keys-indices) (swb--result-get-column-names)))
 
 (defun swb-cell-edit-submit-result ()
   (interactive)
@@ -883,7 +889,7 @@ Note that these might not represent the full key of the table."
           (org-table-get-field nil (format " %s " replacement-value-table))
           (org-table-align)))
       (goto-char (set-window-point (get-buffer-window (current-buffer)) target-point))
-      (let ((primary-keys (swb--get-primary-keys))
+      (let ((primary-keys (swb--get-primary-keys-indices))
             (row (car
                   (save-excursion
                     (save-restriction
@@ -894,7 +900,7 @@ Note that these might not represent the full key of the table."
                       ;; for working with the result tables.
                       (org-table-to-lisp))))))
         (push (list :keys (--zip-with (list :name it :value other)
-                                      (-select-by-indices primary-keys (swb--result-get-column-names))
+                                      (swb--get-primary-keys)
                                       (-select-by-indices primary-keys row))
                     :name (swb--result-get-column-names (1- (org-table-current-column)))
                     :value replacement-value-raw)
