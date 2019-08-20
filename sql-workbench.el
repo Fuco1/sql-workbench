@@ -533,27 +533,44 @@ WINDOW."
       (kill-new (mapconcat 's-trim (-flatten col-data) ", "))
       (message "Copied %d rows." (length col-data)))))
 
-(defun swb-result-copy-row-sql ()
+(defun swb-result-copy-row-sql (beg end)
   "Copy current row as SQL values clause."
-  (interactive)
+  (interactive (list
+                (save-excursion
+                  (when (use-region-p)
+                    (goto-char (region-beginning)))
+                  (line-beginning-position))
+                (save-excursion
+                  (when (use-region-p)
+                    (goto-char (region-end)))
+                  (line-end-position))))
   (save-excursion
     (save-restriction
-      (narrow-to-region (line-beginning-position) (line-end-position))
-      (let* ((data (car (org-table-to-lisp)))
-             (typed-data (-map (-lambda ((type . data))
-                                 ;; TODO: this is very crude
-                                 (if (string-match-p
-                                      (regexp-opt
-                                       (list
-                                        "STRING"
-                                        "DATE"
-                                        "DATETIME"
-                                        "BLOB"
-                                        )) type)
-                                     (format "'%s'" data)
-                                   data))
-                               (-zip (--map (plist-get (cdr it) :type) swb-metadata) data))))
-        (kill-new (format "(%s)" (mapconcat 'identity typed-data ", ")))))))
+      (widen)
+      (narrow-to-region beg end)
+      (let* ((data (org-table-to-lisp))
+             (types (--map (plist-get (cdr it) :type) swb-metadata))
+             (typed-data
+              (-map (lambda (row)
+                      (-map (-lambda ((type . item))
+                              ;; TODO: this is very crude
+                              (if (string-match-p
+                                   (regexp-opt
+                                    (list "STRING"
+                                          "DATE"
+                                          "DATETIME"
+                                          "BLOB"))
+                                   type)
+                                  (format "'%s'" item)
+                                item))
+                            (-zip types row)))
+                    data)))
+        (kill-new (mapconcat
+                   (lambda (row)
+                     (format "(%s)" (mapconcat 'identity row ", ")))
+                   typed-data
+                   ", "))
+        (message "Copied %d rows to kill-ring" (length data))))))
 
 (defun swb--result-get-column-names (&optional n)
   "Return all the columns in the result.
