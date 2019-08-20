@@ -594,6 +594,25 @@ If optional argument N is set get the name of nth column."
            (columns (-map 's-trim (split-string header "|" t))))
       (if n (nth n columns) columns))))
 
+(defun swb-result-narrow-by-primary-key (filters)
+  "Run a new query in the current table with additional filter based on primary keys."
+  (interactive (list
+                (let ((keys (swb--get-primary-keys)))
+                  (--map
+                   (cons
+                    it
+                    (read-from-minibuffer
+                     (format "%s = ? " it)))
+                   keys))))
+  (let ((table (plist-get (cdar swb-metadata) :original-table))
+        (conditions (->> filters
+                         (--remove (string-empty-p (cdr it)))
+                         (--map (format "%s = %s" (car it) (cdr it)))
+                         (s-join " AND "))))
+    (swb-query-display-result
+     (format "select * from %s where %s" table conditions)
+     (current-buffer))))
+
 (defun swb-result-forward-cell (&optional arg)
   "Go forward ARG cells."
   (interactive "p")
