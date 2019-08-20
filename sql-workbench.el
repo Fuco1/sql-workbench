@@ -374,7 +374,9 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   "Show data in TABLE.
 
 Limits to `swb-show-data-row-page-size' lines of output."
-  (interactive (list (swb--read-table)))
+  (interactive (list (if (eq major-mode 'swb-result-mode)
+                         (plist-get (cdar swb-metadata) :original-table)
+                       (swb--read-table))))
   (let ((query (format "SELECT * FROM `%s` LIMIT %d;" table swb-show-data-row-page-size))
         (buffer (get-buffer-create (format "*data-%s*" table)))
         (connection swb-connection))
@@ -777,6 +779,7 @@ name from the column name by dropping the _id suffix."
 (defvar swb-result-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map org-mode-map)
+    (define-key map (kbd "C-c C-d") 'swb-show-data-in-table)
     (define-key map [remap beginning-of-buffer] 'swb-beginning-of-buffer)
     (define-key map [remap beginning-of-line] 'swb-beginning-of-line)
     (define-key map [remap end-of-buffer] 'swb-end-of-buffer)
