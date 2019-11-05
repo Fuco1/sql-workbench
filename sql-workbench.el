@@ -88,6 +88,11 @@ loaded loads this many rows."
 (defvar swb-user nil "String determining user.")
 (defvar swb-database nil "String determining database.")
 
+(put 'swb-host 'safe-local-variable #'stringp)
+(put 'swb-port 'safe-local-variable #'stringp)
+(put 'swb-user 'safe-local-variable #'stringp)
+(put 'swb-database 'safe-local-variable #'stringp)
+
 ;; TODO: move these state variables into a defstruct.
 ;; TODO: remove this variable?
 (defvar swb-result-buffer nil
