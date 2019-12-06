@@ -42,7 +42,7 @@
     (interactive (company-begin-backend 'company-swb))
     (prefix (and (eq major-mode 'swb-mode)
                  (company-grab-symbol)))
-    (candidates (let* ((tables (my-sql-get-tables (swb-get-query-at-point)))
+    (candidates (let* ((tables (swb--get-tables (swb-get-query-at-point)))
                        (table-alias (save-excursion
                                       (backward-char (1+ (length arg)))
                                       (when (looking-at "\\.")
@@ -94,28 +94,6 @@
           ("select" 3)
           ("delete" 4)
           ("insert" 5))))))
-
-(defun my-sql-get-tables (sql)
-  (let ((keywords (concat
-                   "[^`]\\_<"
-                   (regexp-opt
-                    (list "where" "order" "group" "join" "set")) "\\_>")))
-    (with-temp-buffer
-      (insert sql)
-      (goto-char (point-min))
-      ;; get tables from `from'
-      (-when-let (beg (re-search-forward
-                       (regexp-opt (list "from" "update") 'symbols)
-                       nil t))
-        (-when-let (end (or (when (re-search-forward keywords nil t)
-                              (match-beginning 0))
-                            (point-max)))
-          (let* ((tables (buffer-substring-no-properties beg end))
-                 (tables (replace-regexp-in-string "[`;]" "" tables))
-                 (tables (split-string tables ","))
-                 (tables (-map 's-trim tables))
-                 (tables (--map (split-string it " \\(as\\)?" t) tables)))
-            tables))))))
 
 (provide 'company-swb)
 ;;; company-swb.el ends here

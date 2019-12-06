@@ -241,12 +241,117 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
                  (error (point-max))))))
     (cons beg end)))
 
+(defun swb--get-tables (sql)
+  "Get the tables mentioned in SQL query."
+  (let ((keywords (concat
+                   "[^`]\\_<"
+                   (regexp-opt
+                    (list "where" "order" "group" "join" "set")) "\\_>"))
+        (all-tables nil))
+    (with-temp-buffer
+      (insert sql)
+      ;; get tables from `from'
+      (goto-char (point-min))
+      (-when-let (beg (re-search-forward
+                       (regexp-opt (list "from" "update") 'symbols)
+                       nil t))
+        (-when-let (end (or (when (re-search-forward keywords nil t)
+                              (match-beginning 0))
+                            (point-max)))
+          (let* ((tables (buffer-substring-no-properties beg end))
+                 (tables (replace-regexp-in-string "[`;]" "" tables))
+                 (tables (split-string tables ","))
+                 (tables (-map 's-trim tables))
+                 (tables (--map (split-string it " \\(as\\)?" t) tables)))
+            (setq all-tables (-concat all-tables tables)))))
+      ;; get tables from `join'
+      (goto-char (point-min))
+      (-when-let (beg (re-search-forward
+                       (regexp-opt (list "join") 'symbols)
+                       nil t))
+        (-when-let (end (or (when (re-search-forward
+                                   (regexp-opt (list "on" "where") 'symbols) nil t)
+                              (match-beginning 0))
+                            (point-max)))
+          (let* ((tables (buffer-substring-no-properties beg end))
+                 (tables (replace-regexp-in-string "[`;]" "" tables))
+                 (tables (split-string tables ","))
+                 (tables (-map 's-trim tables))
+                 (tables (--map (split-string it " \\(as\\)?" t) tables)))
+            (setq all-tables (-concat all-tables tables))))))
+    all-tables))
+
+(defun swb--get-query-columns-from-query (query)
+  "Get columns in the projection part of a select QUERY.
+
+If QUERY is not a select, return nil."
+  (with-temp-buffer
+    (insert query)
+    (goto-char (point-min))
+    (when (search-forward "select " nil t)
+      (let ((start (point)))
+        (when-let ((end (when (search-forward " from " nil t)
+                          (forward-char -5)
+                          (point))))
+          (-map 's-trim (s-split "," (buffer-substring-no-properties start end))))))))
+
+(defun swb--expand-columns-in-select-query (query)
+  "Expand columns in the projection part of a select QUERY.
+
+A simple star-expansion is available: a single star will match
+any sequence of characters.  The star can be at the sides or in
+the middle of a column, multiple stars are supported.
+
+Examples:
+
+results has columns:
+- id
+- amount_result
+- amount_user
+- total_result
+- user_name
+- user_name_short
+
+  select *result from results;    -- => amount_result, total_result
+
+  select amount_* from results;   -- => amount_result, amount_user
+
+  select id, *name* from results; -- => id, user_name, user_name_short"
+  (let* ((tables (swb--get-tables query))
+         (columns (-mapcat (-lambda ((table alias))
+                             (--map (propertize
+                                     (plist-get it :Field)
+                                     'meta table)
+                                    (swb-query-fetch-plist
+                                     swb-connection
+                                     (format "describe %s" table))))
+                           tables)))
+    (concat
+     "select "
+     (mapconcat
+      (lambda (column)
+        (or (and (string-match-p "\\*\\'" column)
+                 (s-join ", " (--filter (string-match-p
+                                         (replace-regexp-in-string "\\*" ".*" column)
+                                         it)
+                                        columns)))
+            column))
+      (swb--get-query-columns-from-query query)
+      ", ")
+     " "
+     (progn
+       (string-match ".*\\( from .*\\)" query)
+       (match-string 1 query)))))
+
 ;; TODO: this might be connection-specific too, so we should probably
 ;; move it to the class
 (defun swb-get-query-at-point ()
   "Get query at point."
-  (-let (((beg . end) (swb-get-query-bounds-at-point)))
-    (buffer-substring-no-properties beg end)))
+  (let ((q (-let (((beg . end) (swb-get-query-bounds-at-point)))
+             (buffer-substring-no-properties beg end))))
+    (if (string-match-p "\\`select.*" (s-trim q))
+        (swb--expand-columns-in-select-query q)
+      q)))
 
 (defun swb--get-result-buffer ()
   "Return the result buffer for this workbench."
