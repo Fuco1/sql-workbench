@@ -330,7 +330,8 @@ results has columns:
      "select "
      (mapconcat
       (lambda (column)
-        (or (and (string-match-p "\\*\\'" column)
+        (or (and (string-match-p "\\*" column)
+                 (not (equal "*" column))
                  (s-join ", " (--filter (string-match-p
                                          (replace-regexp-in-string "\\*" ".*" column)
                                          it)
