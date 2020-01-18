@@ -38,6 +38,7 @@
 (require 'org)
 (require 'org-table)
 (require 'org-src)
+(require 'epg)
 
 (require 'swb-connection-mysql)
 
@@ -81,17 +82,26 @@ loaded loads this many rows."
   :type 'integer
   :group 'sql-workbench)
 
+(defcustom swb-crypt-key nil
+  "Encryption key used for saving passwords in the workbench files."
+  :type '(choice
+          (const :tag "No encryption" nil)
+          (string :tag "Recipient"))
+  :group 'sql-workbench)
+
 ;; These four exist to mirror file-local variables storing the
 ;; connection info.
 (defvar swb-host nil "String determining host.")
 (defvar swb-port nil "Number determining port.")
 (defvar swb-user nil "String determining user.")
 (defvar swb-database nil "String determining database.")
+(defvar swb-password nil "Base64 encoded gpg encrypted password.")
 
 (put 'swb-host 'safe-local-variable #'stringp)
 (put 'swb-port 'safe-local-variable #'stringp)
 (put 'swb-user 'safe-local-variable #'stringp)
 (put 'swb-database 'safe-local-variable #'stringp)
+(put 'swb-password 'safe-local-variable #'stringp)
 
 ;; TODO: move these state variables into a defstruct.
 ;; TODO: remove this variable?
@@ -150,6 +160,27 @@ If nothing is found, return nil."
    (swb-user)
    (t nil)))
 
+(defun swb--get-default-password ()
+  "Get default password for this buffer.
+
+First look if there is a connection.  If so, reuse.
+
+Then look at the local variable `swb-password'.
+
+If nothing is found, return nil."
+  (cond
+   ((swb-iconnection-child-p swb-connection)
+    (oref swb-connection password))
+   (swb-password
+    (let* ((encrypted-text (base64-decode-string swb-password)))
+      (setq-local epg-context (epg-make-context nil t t))
+      (decode-coding-string
+       (epg-decrypt-string
+        epg-context
+        encrypted-text)
+       'utf-8)))
+   (t nil)))
+
 (defun swb--get-default-database ()
   "Get default database for this buffer.
 
@@ -172,7 +203,7 @@ connection when we query for the list of database."
   (let* ((host (read-from-minibuffer "Host: " (swb--get-default-host)))
          (port (read-from-minibuffer "Port: " (--when-let (swb--get-default-port) (number-to-string it))))
          (user (read-from-minibuffer "User: " (swb--get-default-user)))
-         (password (read-passwd "Password: "))
+         (password (read-passwd "Password: " nil (swb--get-default-password)))
          (database (completing-read "Database: "
                                     (swb-get-databases
                                      (funcall connection-constructor "temp" :host host :port (string-to-number port) :user user :password password))
@@ -536,10 +567,18 @@ Limits to `swb-show-data-row-page-size' lines of output."
   (interactive)
   (save-excursion
     (when (swb-iconnection-child-p swb-connection)
-     (add-file-local-variable 'swb-host (swb-get-host swb-connection))
-     (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
-     (add-file-local-variable 'swb-user (swb-get-user swb-connection))
-     (add-file-local-variable 'swb-database (swb-get-database swb-connection)))))
+      (add-file-local-variable 'swb-host (swb-get-host swb-connection))
+      (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
+      (add-file-local-variable 'swb-user (swb-get-user swb-connection))
+      (add-file-local-variable 'swb-database (swb-get-database swb-connection))
+      (when (bound-and-true-p swb-crypt-key)
+        ;; in case we have a crypt key we can also store the password
+        (setq-local epg-context (epg-make-context nil t t))
+        (let ((encrypted-password
+               (epg-encrypt-string
+                epg-context (oref swb-connection password)
+                (epg-list-keys epg-context swb-crypt-key))))
+          (add-file-local-variable 'swb-password (base64-encode-string encrypted-password :no-line-break)))))))
 
 ;; TODO: add function to explain current query
 ;; TODO: add function to list all tables/objects in the database
