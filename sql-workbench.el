@@ -1177,7 +1177,14 @@ cell in a separate buffer."
                                               (org-table-current-column))))
                            "%b"
                            (:eval (when (use-region-p)
-                                    (format "     (Sum: %s, Avg: %s)" (org-table-sum) (swb-org-table-avg))))
+                                    (format "     (%s rows, Sum: %s, Avg: %s)"
+                                            (1+ (abs (- (org-table-current-line)
+                                                        (save-excursion
+                                                          (goto-char (mark))
+                                                          (org-table-current-line)))))
+                                            (org-table-sum)
+                                            (swb-org-table-avg)
+                                            )))
                            (:eval (when swb-count
                                     (format "     (%s rows of %s total)"
                                             (swb-format-number (min swb-count swb-show-data-row-page-size))
