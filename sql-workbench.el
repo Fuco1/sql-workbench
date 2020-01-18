@@ -278,7 +278,11 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
                  (tables (split-string tables ","))
                  (tables (-map 's-trim tables))
                  (tables (--map (split-string it " \\(as\\)?" t) tables)))
-            (setq all-tables (-concat all-tables tables))))))
+            (setq all-tables (-concat all-tables tables)))))
+      (goto-char (point-min))
+      (-when-let (beg (re-search-forward "alter +table +" nil t))
+        (skip-syntax-forward " ")
+        (setq all-tables (-concat all-tables (list (list (symbol-name (symbol-at-point))))))))
     all-tables))
 
 (defun swb--get-query-columns-from-query (query)
