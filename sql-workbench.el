@@ -1166,12 +1166,19 @@ cell in a separate buffer."
              (kill-buffer))))))
     (setq-local swb-result-pending-updates nil)))
 
+(defun swb-result-eldoc-function ()
+  (format "Current column: %s"
+          (swb--result-get-column-names
+           (1- (org-table-current-column)))))
+
 ;; TODO: implement "query ring" so we can back and forth from the
 ;; result buffer itself.
 (define-derived-mode swb-result-mode org-mode "Swb result"
   "Mode for displaying results of sql queries."
   (read-only-mode 1)
   (set (make-local-variable 'org-mode-hook) nil)
+  (set (make-local-variable 'eldoc-documentation-function)
+       'swb-result-eldoc-function)
   (setq mode-line-format '((10 (:eval (format "(%d,%d)"
                                               (- (line-number-at-pos) 3)
                                               (org-table-current-column))))
