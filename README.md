@@ -36,6 +36,10 @@ buffer-local.  If you then execute a statement sql-workbench will
 automatically reconnect using the stored connection information.  This
 makes resuming work between sessions super easy.
 
+If you customize the variable `swb-crypt-key` to be an email
+associated with a gpg key, the password will be also stored as
+encrypted base64-encoded string with this key set as recipient.
+
 ## Using the results buffer
 
 # Integration with other packages
