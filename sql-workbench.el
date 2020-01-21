@@ -580,6 +580,19 @@ Limits to `swb-show-data-row-page-size' lines of output."
                 (epg-list-keys epg-context swb-crypt-key))))
           (add-file-local-variable 'swb-password (base64-encode-string encrypted-password :no-line-break)))))))
 
+(defun swb-use-database (database)
+  "Change the active DATABASE of current connection.
+
+If no connection is established, try to connect first."
+  (interactive (list (if swb-connection
+                         (completing-read
+                          "Database: "
+                          (swb-get-databases swb-connection))
+                       nil)))
+  (if database
+      (swb-connection-use-database swb-connection database)
+    (swb-maybe-connect)))
+
 ;; TODO: add function to explain current query
 ;; TODO: add function to list all tables/objects in the database
 ;; TODO: add something to navigate queries (beg/end-of-defun style)
@@ -592,6 +605,7 @@ Limits to `swb-show-data-row-page-size' lines of output."
     (define-key map (kbd "C-c C-r") 'swb-reconnect)
     (define-key map (kbd "C-c C-s") 'swb-store-connection-to-file)
     (define-key map (kbd "C-c C-n") 'swb-show-number-of-rows-in-table)
+    (define-key map (kbd "C-c C-e") 'swb-use-database)
     map)
   "Keymap for swb mode.")
 
