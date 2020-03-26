@@ -740,7 +740,7 @@ Return the region as a list of lists of fields."
     col-data))
 
 ;; TODO: pridat podporu na zohladnenie regionu
-(defun swb-copy-column-csv ()
+(defun swb-result-copy-column-csv ()
   "Put the values of the column into `kill-ring' as comma-separated string."
   (interactive)
   (save-excursion
@@ -748,44 +748,92 @@ Return the region as a list of lists of fields."
       (kill-new (mapconcat 's-trim (-flatten col-data) ", "))
       (message "Copied %d rows." (length col-data)))))
 
-(defun swb-result-copy-row-sql (beg end)
-  "Copy current row as SQL values clause."
-  (interactive (list
-                (save-excursion
-                  (when (use-region-p)
-                    (goto-char (region-beginning)))
-                  (line-beginning-position))
-                (save-excursion
-                  (when (use-region-p)
-                    (goto-char (region-end)))
-                  (line-end-position))))
+(defun swb-result--copy-interactive ()
+  (list
+   (save-excursion
+     (when (use-region-p)
+       (goto-char (region-beginning)))
+     (line-beginning-position))
+   (save-excursion
+     (when (use-region-p)
+       (goto-char (region-end)))
+     (line-end-position))))
+
+(defun swb-result--copy-get-data (beg end)
   (save-excursion
     (save-restriction
       (widen)
       (narrow-to-region beg end)
       (let* ((data (org-table-to-lisp))
              (types (--map (plist-get (cdr it) :type) swb-metadata))
+             (names (-map 'car swb-metadata))
              (typed-data
-              (-map (lambda (row)
-                      (-map (-lambda ((type . item))
-                              ;; TODO: this is very crude
-                              (if (string-match-p
-                                   (regexp-opt
-                                    (list "STRING"
-                                          "DATE"
-                                          "DATETIME"
-                                          "BLOB"))
-                                   type)
-                                  (format "'%s'" item)
-                                item))
-                            (-zip types row)))
-                    data)))
-        (kill-new (mapconcat
-                   (lambda (row)
-                     (format "(%s)" (mapconcat 'identity row ", ")))
-                   typed-data
-                   ", "))
-        (message "Copied %d rows to kill-ring" (length data))))))
+              (-map
+               (lambda (row)
+                 (-map
+                  (-lambda ((type name item))
+                    ;; TODO: this is very crude
+                    (list
+                     :type type
+                     :name name
+                     :item (if (string-match-p
+                                (regexp-opt
+                                 (list "STRING"
+                                       "DATE"
+                                       "DATETIME"
+                                       "BLOB"))
+                                type)
+                               (format "'%s'" item)
+                             item)))
+                  (-zip types names row)))
+               data)))
+        typed-data))))
+
+(defun swb-result-copy-row-sql (beg end)
+  "Copy current row as SQL values clause."
+  (interactive (swb-result--copy-interactive))
+  (let ((data (swb-result--copy-get-data beg end)))
+    (kill-new (mapconcat
+               (lambda (row)
+                 (format "(%s)" (mapconcat (lambda (x) (plist-get x :item)) row ", ")))
+               data
+               ", "))
+    (message "Copied %d rows to kill-ring" (length data))))
+
+(defun swb-result-copy-row-php-assoc (beg end)
+  "Copy current row as PHP associative array."
+  (interactive (swb-result--copy-interactive))
+  (let ((data (swb-result--copy-get-data beg end)))
+    (kill-new
+     (format
+      "[
+%s
+]"
+      (mapconcat
+       (lambda (row)
+         (format "[
+%s
+]" (mapconcat (lambda (x)
+                (format
+                 "'%s' => %s"
+                 (plist-get x :name)
+                 (plist-get x :item))) row ",
+")))
+       data
+       ",
+")))
+    (message "Copied %d rows to kill-ring" (length data))))
+
+(defun swb-result-copy-row-sql (beg end)
+  "Copy current row as SQL values clause."
+  (interactive (swb-result--copy-interactive))
+  (let ((data (swb-result--copy-get-data beg end)))
+    (kill-new (mapconcat
+               (lambda (row)
+                 (format "(%s)" (mapconcat 'identity row ", ")))
+               data
+               ", "))
+    (message "Copied %d rows to kill-ring" (length data))))
 
 (defun swb--result-get-column-names (&optional n)
   "Return all the columns in the result.
@@ -1079,8 +1127,24 @@ name from the column name by dropping the _id suffix."
     ;; TODO: add function to copy the content of current cell
     ;; TODO: put this under a nested map so we can have multiple
     ;; export types
-    (define-key map "c" 'swb-copy-column-csv)
-    (define-key map "r" 'swb-result-copy-row-sql)
+    (define-key map "c"
+      (defhydra swb-copy-column (:color blue :hint nil)
+        "
+Copy the current column as:
+
+_c_sv
+"
+        ("c" swb-result-copy-column-csv)))
+    (define-key map "r"
+      (defhydra swb-copy-row (:color blue :hint nil)
+        "
+Copy the current row as:
+
+SQL (_r_)
+_p_hp
+"
+        ("r" swb-result-copy-row-sql)
+        ("p" swb-result-copy-row-php-assoc)))
     (define-key map "e" 'swb-result-show-cell)
     (define-key map (kbd "C-c C-c") 'swb-result-submit)
     (define-key map "q" 'quit-window)
