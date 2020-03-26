@@ -277,7 +277,7 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
   (let ((keywords (concat
                    "[^`]\\_<"
                    (regexp-opt
-                    (list "where" "order" "group" "join" "set")) "\\_>"))
+                    (list "where" "order" "group" "join" "set" "limit")) "\\_>"))
         (all-tables nil))
     (with-temp-buffer
       (insert sql)
@@ -325,7 +325,7 @@ If QUERY is not a select, return nil."
     (goto-char (point-min))
     (when (search-forward "select " nil t)
       (let ((start (point)))
-        (when-let ((end (when (search-forward " from " nil t)
+        (when-let ((end (when (search-forward "from " nil t)
                           (forward-char -5)
                           (point))))
           (-map 's-trim (s-split "," (buffer-substring-no-properties start end))))))))
@@ -352,32 +352,36 @@ results has columns:
   select amount_* from results;   -- => amount_result, amount_user
 
   select id, *name* from results; -- => id, user_name, user_name_short"
-  (let* ((tables (swb--get-tables query))
-         (columns (-mapcat (-lambda ((table alias))
-                             (--map (propertize
-                                     (plist-get it :Field)
-                                     'meta table)
-                                    (swb-query-fetch-plist
-                                     swb-connection
-                                     (format "describe %s" table))))
-                           tables)))
-    (concat
-     "select "
-     (mapconcat
-      (lambda (column)
-        (or (and (string-match-p "\\*" column)
-                 (not (equal "*" column))
-                 (s-join ", " (--filter (string-match-p
-                                         (replace-regexp-in-string "\\*" ".*" column)
-                                         it)
-                                        columns)))
-            column))
-      (swb--get-query-columns-from-query query)
-      ", ")
-     " "
-     (progn
-       (string-match ".*\\( from .*\\)" query)
-       (match-string 1 query)))))
+  (if (string-match-p "\\`select.*" query)
+      (let* ((tables (swb--get-tables query))
+             (columns (-mapcat (-lambda ((table alias))
+                                 (--map (propertize
+                                         (plist-get it :Field)
+                                         'meta table)
+                                        (swb-query-fetch-plist
+                                         swb-connection
+                                         (format "describe %s" table))))
+                               tables))
+             (query-columns (swb--get-query-columns-from-query query)))
+        (concat
+         "select "
+         (mapconcat
+          (lambda (column)
+            (or (and (string-match-p "\\*" column)
+                     (not (string-match-p "^\\(.*?\\.\\)?\\*" column))
+                     (not (string-match-p "(\\*)" column))
+                     (s-join ", " (--filter (string-match-p
+                                             (replace-regexp-in-string "\\*" ".*" column)
+                                             it)
+                                            columns)))
+                column))
+          query-columns
+          ", ")
+         " "
+         (progn
+           (string-match "\\(?:.\\|\n\\)*\\(from \\(.\\|\n\\)*\\)" query)
+           (match-string 1 query))))
+    query))
 
 ;; TODO: this might be connection-specific too, so we should probably
 ;; move it to the class
@@ -385,9 +389,7 @@ results has columns:
   "Get query at point."
   (let ((q (-let (((beg . end) (swb-get-query-bounds-at-point)))
              (buffer-substring-no-properties beg end))))
-    (if (string-match-p "\\`select.*" (s-trim q))
-        (swb--expand-columns-in-select-query q)
-      q)))
+    (swb--expand-columns-in-select-query (s-trim q))))
 
 (defun swb--get-result-buffer ()
   "Return the result buffer for this workbench."
