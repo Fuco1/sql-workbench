@@ -587,7 +587,13 @@ If no connection is established, try to connect first."
   (interactive (list (if swb-connection
                          (completing-read
                           "Database: "
-                          (swb-get-databases swb-connection))
+                          (swb-get-databases swb-connection)
+                          nil
+                          nil
+                          nil
+                          nil
+                          (and (symbol-at-point)
+                               (symbol-name (symbol-at-point))))
                        nil)))
   (if database
       (swb-connection-use-database swb-connection database)
