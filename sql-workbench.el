@@ -689,6 +689,41 @@ WINDOW."
       (setq end (point))
       (cons beg end))))
 
+;; copied from org-table-copy-region
+(defun swb--org-table-copy-region (beg end)
+  "Extract rectangular region in table.
+
+Return the region as a list of lists of fields."
+  (interactive
+   (list
+    (if (org-region-active-p) (region-beginning) (point))
+    (if (org-region-active-p) (region-end) (point))
+    current-prefix-arg))
+  (goto-char (min beg end))
+  (org-table-check-inside-data-field)
+  (let ((beg (line-beginning-position))
+        (c01 (org-table-current-column))
+        region)
+    (goto-char (max beg end))
+    (org-table-check-inside-data-field nil t)
+    (let* ((end (copy-marker (line-end-position)))
+           (c02 (org-table-current-column))
+           (column-start (min c01 c02))
+           (column-end (max c01 c02))
+           (column-number (1+ (- column-end column-start)))
+           (rpl nil))
+      (goto-char beg)
+      (while (< (point) end)
+        (unless (org-at-table-hline-p)
+          ;; Collect every cell between COLUMN-START and COLUMN-END.
+          (let (cols)
+            (dotimes (c column-number)
+              (push (org-table-get-field (+ c column-start) rpl) cols))
+            (push (nreverse cols) region)))
+        (forward-line))
+      (set-marker end nil))
+    (nreverse region)))
+
 ;; TODO: pridat podporu na zohladnenie regionu
 ;; TODO: why does this return a list of singletons? Why not just a
 ;; list.
@@ -696,7 +731,7 @@ WINDOW."
 (defun swb--get-column-data ()
   "Get data of current column."
   (-let* (((beg . end) (swb--get-column-bounds))
-          (col-data (org-table-copy-region
+          (col-data (swb--org-table-copy-region
                      (save-excursion
                        (goto-char beg)
                        (swb-result-down-cell 2)
@@ -898,7 +933,7 @@ This means rerunning the query which produced it."
 
 ;; TODO: this is just copy-pasted `org-table-sum'.  Fix the bloody
 ;; duplicity!.
-(defun swb-org-table-avg (&optional beg end nlast)
+(defun swb-org-table-avg (&optional beg end nlast no-kill)
   "See `org-table-sum'."
   (interactive)
   (save-excursion
@@ -919,7 +954,7 @@ This means rerunning the query which produced it."
           (user-error "No table data"))
         (org-table-goto-column col)
         (setq end (point))))
-      (let* ((items (apply 'append (org-table-copy-region beg end)))
+      (let* ((items (apply 'append (swb--org-table-copy-region beg end)))
              (items1 (cond ((not nlast) items)
                            ((>= nlast (length items)) items)
                            (t (setq items (reverse items))
@@ -935,12 +970,70 @@ This means rerunning the query which produced it."
                            m (floor (/ diff 60)) diff (mod diff 60)
                            s diff)
                      (format "%.0f:%02.0f:%02.0f" h m s))))
-        (kill-new sres)
+        (unless no-kill (kill-new sres))
         (if (org-called-interactively-p 'interactive)
             (message "%s"
                      (substitute-command-keys
                       (format "Average of %d items: %-20s     (\\[yank] will insert result into buffer)"
                               (length numbers) sres))))
+        sres))))
+
+;; TODO: this is just copy-pasted `org-table-sum'.
+(defun swb-org-table-sum (&optional beg end nlast no-kill)
+  "Sum numbers in region of current table column.
+The result will be displayed in the echo area, and will be available
+as kill to be inserted with \\[yank].
+
+If there is an active region, it is interpreted as a rectangle and all
+numbers in that rectangle will be summed.  If there is no active
+region and point is located in a table column, sum all numbers in that
+column.
+
+If at least one number looks like a time HH:MM or HH:MM:SS, all other
+numbers are assumed to be times as well (in decimal hours) and the
+numbers are added as such.
+
+If NLAST is a number, only the NLAST fields will actually be summed."
+  (interactive)
+  (save-excursion
+    (let (col (org-timecnt 0) diff h m s org-table-clip)
+      (cond
+       ((and beg end))   ; beg and end given explicitly
+       ((org-region-active-p)
+        (setq beg (region-beginning) end (region-end)))
+       (t
+        (setq col (org-table-current-column))
+        (goto-char (org-table-begin))
+        (unless (re-search-forward "^[ \t]*|[^-]" nil t)
+          (user-error "No table data"))
+        (org-table-goto-column col)
+        (setq beg (point))
+        (goto-char (org-table-end))
+        (unless (re-search-backward "^[ \t]*|[^-]" nil t)
+          (user-error "No table data"))
+        (org-table-goto-column col)
+        (setq end (point))))
+      (let* ((items (apply 'append (swb--org-table-copy-region beg end)))
+             (items1 (cond ((not nlast) items)
+                           ((>= nlast (length items)) items)
+                           (t (setq items (reverse items))
+                              (setcdr (nthcdr (1- nlast) items) nil)
+                              (nreverse items))))
+             (numbers (delq nil (mapcar 'org-table-get-number-for-summing
+                                        items1)))
+             (res (apply '+ numbers))
+             (sres (if (= org-timecnt 0)
+                       (number-to-string res)
+                     (setq diff (* 3600 res)
+                           h (floor (/ diff 3600)) diff (mod diff 3600)
+                           m (floor (/ diff 60)) diff (mod diff 60)
+                           s diff)
+                     (format "%.0f:%02.0f:%02.0f" h m s))))
+        (unless no-kill (kill-new sres))
+        (when (called-interactively-p 'interactive)
+          (message "%s" (substitute-command-keys
+                         (format "Sum of %d items: %-20s     \
+\(\\[yank] will insert result into buffer)" (length numbers) sres))))
         sres))))
 
 ;; TODO: read the actual foreign key metadata from table structure
@@ -972,7 +1065,7 @@ name from the column name by dropping the _id suffix."
     (define-key map [remap beginning-of-line] 'swb-beginning-of-line)
     (define-key map [remap end-of-buffer] 'swb-end-of-buffer)
     (define-key map [remap end-of-line] 'swb-end-of-line)
-    (define-key map "+" 'org-table-sum)
+    (define-key map "+" 'swb-org-table-sum)
     (define-key map "%" 'swb-org-table-avg)
     (define-key map "f" 'swb-result-forward-cell)
     (define-key map "b" 'swb-result-backward-cell)
@@ -1209,8 +1302,8 @@ cell in a separate buffer."
                                                         (save-excursion
                                                           (goto-char (mark))
                                                           (org-table-current-line)))))
-                                            (org-table-sum)
-                                            (swb-org-table-avg)
+                                            (swb-org-table-sum nil nil nil 'no-kill)
+                                            (swb-org-table-avg nil nil nil 'no-kill)
                                             )))
                            (:eval (when swb-count
                                     (format "     (%s rows of %s total)"
