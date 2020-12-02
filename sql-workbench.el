@@ -802,6 +802,24 @@ Return the region as a list of lists of fields."
                ", "))
     (message "Copied %d rows to kill-ring" (length data))))
 
+(defun swb-result-copy-row-csv (beg end)
+  "Copy current row as CSV."
+  (interactive (swb-result--copy-interactive))
+  (let* ((data (swb-result--copy-get-data beg end))
+         (header (format "%s" (mapconcat
+                               (lambda (x) (format "\"%s\"" (plist-get x :name)))
+                               (car data)
+                               ", "))))
+    (kill-new (concat
+               header
+               "\n"
+               (mapconcat
+                (lambda (row)
+                  (format "%s" (mapconcat (lambda (x) (plist-get x :item)) row ", ")))
+                data
+                "\n")))
+    (message "Copied %d rows to kill-ring" (length data))))
+
 (defun swb-result-copy-row-php-assoc (beg end)
   "Copy current row as PHP associative array."
   (interactive (swb-result--copy-interactive))
@@ -1133,9 +1151,11 @@ Copy the current row as:
 
 SQL (_r_)
 _p_hp
+_c_sv
 "
         ("r" swb-result-copy-row-sql)
-        ("p" swb-result-copy-row-php-assoc)))
+        ("p" swb-result-copy-row-php-assoc)
+        ("c" swb-result-copy-row-csv)))
     (define-key map "e" 'swb-result-show-cell)
     (define-key map (kbd "C-c C-c") 'swb-result-submit)
     (define-key map "q" 'quit-window)
