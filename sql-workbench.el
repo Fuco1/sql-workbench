@@ -391,6 +391,13 @@ results has columns:
              (buffer-substring-no-properties beg end))))
     (swb--expand-columns-in-select-query (s-trim q))))
 
+(defun swb-copy-query-at-point ()
+  "Copy query at point as new kill."
+  (interactive)
+  (let ((q (swb-get-query-at-point)))
+    (kill-new q)
+    (message "Copied 1 query")))
+
 (defun swb--get-result-buffer ()
   "Return the result buffer for this workbench."
   (if (buffer-live-p swb-result-buffer)
@@ -614,6 +621,7 @@ If no connection is established, try to connect first."
     (define-key map (kbd "C-c C-s") 'swb-store-connection-to-file)
     (define-key map (kbd "C-c C-n") 'swb-show-number-of-rows-in-table)
     (define-key map (kbd "C-c C-e") 'swb-use-database)
+    (define-key map (kbd "C-c C-k") 'swb-copy-query-at-point)
     map)
   "Keymap for swb mode.")
 
