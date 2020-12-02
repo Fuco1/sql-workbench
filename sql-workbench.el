@@ -416,7 +416,7 @@ results has columns:
    connection
    (-remove-item query (swb-get-active-queries connection))))
 
-(defun swb--result-callback (connection query &optional point source-buffer)
+(defun swb--result-callback (connection query &optional point source-buffer params)
   "Return a result callback.
 
 This callback should be called in the result buffer after it has
@@ -437,7 +437,8 @@ function."
     (goto-char (point-min))
     (when (and status
                (< 0 (buffer-size (current-buffer))))
-      (let ((window (display-buffer (current-buffer))))
+      (let ((window (display-buffer (current-buffer)))
+            (result-buffer (current-buffer)))
         (with-selected-window window
           ;; decide here if we want to inline the result or let it be
           ;; in a separate window
@@ -447,38 +448,66 @@ function."
                          (swb--get-column-data)))
                  (inlinep (and (= num-cols 1)
                                (< (length rows) 8))))
-            (if (and source-buffer
-                     point
-                     inlinep)
-                (progn
-                  (with-current-buffer source-buffer
-                    (save-excursion
-                      (goto-char point)
-                      (-let (((_ . end) (swb-get-query-bounds-at-point)))
-                        (goto-char end)
-                        (when (looking-at " -- => \\(.*\\);")
-                          (delete-region (point) (match-end 0)))
-                        (insert (format " -- => %s;"
-                                        (let ((data (-map 's-trim (-flatten rows))))
-                                          (if (= (length rows) 1)
-                                              (car data)
-                                            (s-join ", " data))))))))
-                  (kill-buffer-and-window))
-              (set-window-point window (point-min))
-              (forward-line 3)
-              (swb-result-forward-cell 1)
-              ;; make sure there is no gap... this moves the point to the
-              ;; 4th visible line of the window
-              (recenter 4))))))))
+            (cond
+             ((and source-buffer
+                   point
+                   inlinep)
+              (with-current-buffer source-buffer
+                (save-excursion
+                  (goto-char point)
+                  (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                    (goto-char end)
+                    (when (looking-at " -- => \\(.*\\);")
+                      (delete-region (point) (match-end 0)))
+                    (insert (format " -- => %s;"
+                                    (let ((data (-map 's-trim (-flatten rows))))
+                                      (if (= (length rows) 1)
+                                          (car data)
+                                        (s-join ", " data))))))))
+              (kill-buffer-and-window))
+             ((and source-buffer
+                   point
+                   (plist-get params :inline-table))
+              (with-current-buffer source-buffer
+                (save-excursion
+                  (goto-char point)
+                  (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                    (goto-char end)
+                    (when (looking-at " -- => \\(.*\\);")
+                      (delete-region (point) (match-end 0)))
+                    (when (looking-at "\n\\(-- |\\)")
+                      (let ((beg (match-beginning 1)))
+                        (save-excursion
+                          (goto-char beg)
+                          (while (looking-at-p "-- |")
+                            (forward-line 1))
+                          (delete-region beg (point)))))
+                    (insert (format "\n%s"
+                                    (with-current-buffer result-buffer
+                                      (->> (split-string (buffer-string) "\n" 'omit-nulls)
+                                           (--map (concat "-- " it))
+                                           (s-join "\n"))))))))
+              (kill-buffer-and-window))
+             (t (set-window-point window (point-min))
+                (forward-line 3)
+                (swb-result-forward-cell 1)
+                ;; make sure there is no gap... this moves the point to the
+                ;; 4th visible line of the window
+                (recenter 4)))))))))
 
-(defun swb-query-display-result (query buffer &optional point source-buffer)
+(defun swb-query-display-result (query buffer &optional point source-buffer params)
   "Display result of QUERY in BUFFER.
 
-POINT is current point in the workbench buffer."
+POINT is current point in the workbench buffer.
+
+SOURCE-BUFFER is the workbench buffer (with queries).
+
+PARAMS is an additional plist with arbitrary key-value data
+interpreted by the result callback."
   (interactive)
   (swb-query-format-result
    swb-connection query buffer
-   (swb--result-callback swb-connection query point source-buffer)))
+   (swb--result-callback swb-connection query point source-buffer params)))
 
 ;; TODO: add something to send multiple queries (region/buffer).  If a
 ;; region is active, send the region instead of the query.
@@ -492,13 +521,19 @@ POINT is current point in the workbench buffer."
 If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
   (interactive "P")
   (swb-maybe-connect)
-  ;; TODO: move this `new-result-buffer' directly into
-  ;; `swb--get-result-buffer'
-  (let ((buffer (if new-result-buffer
-                    (generate-new-buffer "*result*")
-                  (swb--get-result-buffer)))
-        (query (swb-get-query-at-point)))
-    (swb-query-display-result query buffer (point) (current-buffer))))
+  (condition-case err
+      (org-ctrl-c-ctrl-c)
+    ;; TODO: move this `new-result-buffer' directly into
+    ;; `swb--get-result-buffer'
+    (error (let* ((arg (prefix-numeric-value new-result-buffer))
+                  (buffer (if (and new-result-buffer (> arg 0))
+                              (generate-new-buffer "*result*")
+                            (swb--get-result-buffer)))
+                  (inline-table (= arg 0))
+                  (query (swb-get-query-at-point)))
+             (swb-query-display-result
+              query buffer (point) (current-buffer)
+              (list :inline-table inline-table))))))
 
 (defun swb--read-table ()
   "Completing read for a table."
