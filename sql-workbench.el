@@ -826,17 +826,6 @@ Return the region as a list of lists of fields."
 ")))
     (message "Copied %d rows to kill-ring" (length data))))
 
-(defun swb-result-copy-row-sql (beg end)
-  "Copy current row as SQL values clause."
-  (interactive (swb-result--copy-interactive))
-  (let ((data (swb-result--copy-get-data beg end)))
-    (kill-new (mapconcat
-               (lambda (row)
-                 (format "(%s)" (mapconcat 'identity row ", ")))
-               data
-               ", "))
-    (message "Copied %d rows to kill-ring" (length data))))
-
 (defun swb--result-get-column-names (&optional n)
   "Return all the columns in the result.
 
