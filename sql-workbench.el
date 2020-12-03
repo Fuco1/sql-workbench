@@ -297,19 +297,22 @@ HOST, PORT, USER, PASSWORD and DATABASE are connection details."
             (setq all-tables (-concat all-tables tables)))))
       ;; get tables from `join'
       (goto-char (point-min))
-      (-when-let (beg (re-search-forward
-                       (regexp-opt (list "join") 'symbols)
-                       nil t))
-        (-when-let (end (or (when (re-search-forward
-                                   (regexp-opt (list "on" "where") 'symbols) nil t)
-                              (match-beginning 0))
-                            (point-max)))
-          (let* ((tables (buffer-substring-no-properties beg end))
-                 (tables (replace-regexp-in-string "[`;]" "" tables))
-                 (tables (split-string tables ","))
-                 (tables (-map 's-trim tables))
-                 (tables (--map (split-string it " \\(as\\)?" t) tables)))
-            (setq all-tables (-concat all-tables tables)))))
+      (catch 'swb-join-done
+        (while t
+          (-if-let (beg (re-search-forward
+                         (regexp-opt (list "join") 'symbols)
+                         nil t))
+              (-when-let (end (or (when (re-search-forward
+                                         (regexp-opt (list "on" "where" "using") 'symbols) nil t)
+                                    (match-beginning 0))
+                                  (point-max)))
+                (let* ((tables (buffer-substring-no-properties beg end))
+                       (tables (replace-regexp-in-string "[`;]" "" tables))
+                       (tables (split-string tables ","))
+                       (tables (-map 's-trim tables))
+                       (tables (--map (split-string it " \\(as\\)?" t) tables)))
+                  (setq all-tables (-concat all-tables tables))))
+            (throw 'swb-join-done t))))
       (goto-char (point-min))
       (-when-let (beg (re-search-forward "alter +table +" nil t))
         (skip-syntax-forward " ")
