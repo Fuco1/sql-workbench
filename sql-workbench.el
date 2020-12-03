@@ -855,13 +855,13 @@ Return the region as a list of lists of fields."
          (header (format "%s" (mapconcat
                                (lambda (x) (format "\"%s\"" (plist-get x :name)))
                                (car data)
-                               ", "))))
+                               ","))))
     (kill-new (concat
                header
                "\n"
                (mapconcat
                 (lambda (row)
-                  (format "%s" (mapconcat (lambda (x) (plist-get x :item)) row ", ")))
+                  (format "%s" (mapconcat (lambda (x) (plist-get x :item)) row ",")))
                 data
                 "\n")))
     (message "Copied %d rows to kill-ring" (length data))))
