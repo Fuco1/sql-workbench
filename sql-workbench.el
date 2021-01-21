@@ -96,12 +96,14 @@ loaded loads this many rows."
 (defvar swb-user nil "String determining user.")
 (defvar swb-database nil "String determining database.")
 (defvar swb-password nil "Base64 encoded gpg encrypted password.")
+(defvar swb-engine nil "Database engine.")
 
 (put 'swb-host 'safe-local-variable #'stringp)
 (put 'swb-port 'safe-local-variable #'stringp)
 (put 'swb-user 'safe-local-variable #'stringp)
 (put 'swb-database 'safe-local-variable #'stringp)
 (put 'swb-password 'safe-local-variable #'stringp)
+(put 'swb-engine 'safe-local-variable #'stringp)
 
 ;; TODO: move these state variables into a defstruct.
 ;; TODO: remove this variable?
@@ -117,6 +119,20 @@ loaded loads this many rows."
 (defvar swb-metadata nil
   "Metadata for the last returned result set.")
 (put 'swb-metadata 'permanent-local t)
+
+(defun swb--get-default-engine ()
+  "Get default engine for this buffer.
+
+First look if there is a connection.  If so, reuse.
+
+Then look at the local variable `swb-engine'.
+
+If nothing is found, return nil."
+  (cond
+   ((swb-iconnection-child-p swb-connection)
+    (oref swb-connection engine))
+   (swb-engine)
+   (t nil)))
 
 (defun swb--get-default-host ()
   "Get default host for this buffer.
@@ -195,31 +211,41 @@ If nothing is found, return nil."
    (swb-database)
    (t nil)))
 
-(defun swb--read-connection (connection-constructor)
+(defun swb--read-connection ()
   "Read connection data.
 
 CONNECTION-CONSTRUCTOR is a constructor to create temporary
 connection when we query for the list of database."
-  (let* ((host (read-from-minibuffer "Host: " (swb--get-default-host)))
+  (let* ((engine (completing-read "Engine: " (list "mysql" "mssql") nil t
+                                  (swb--get-default-engine)))
+         (constructor (swb--get-connection-constructor engine))
+         (host (read-from-minibuffer "Host: " (swb--get-default-host)))
          (port (read-from-minibuffer "Port: " (--when-let (swb--get-default-port) (number-to-string it))))
          (user (read-from-minibuffer "User: " (swb--get-default-user)))
          (password (read-passwd "Password: " nil (swb--get-default-password)))
          (database (completing-read "Database: "
                                     (swb-get-databases
-                                     (funcall connection-constructor "temp" :host host :port (string-to-number port) :user user :password password))
+                                     (funcall constructor "temp" :host host :port (string-to-number port) :user user :password password))
                                     nil t nil nil (swb--get-default-database))))
-    (list host (string-to-number port) user password database)))
+    (list engine host (string-to-number port) user password database)))
+
+(defun swb--get-connection-constructor (engine)
+  "Get function to construct a connection object.
+
+ENGINE is the RDBS engine name."
+  (intern (concat "swb-connection-" engine)))
 
 ;; TODO: add a list of named predefined connections I could pick
 ;; instead of host (like an alias which would expand to the other
 ;; settings)
 ;; TODO: make this generic/connection type independent
-(defun swb-reconnect (host port user password database)
+(defun swb-reconnect (engine host port user password database)
   "Reconnect this workbench.
 
-HOST, PORT, USER, PASSWORD and DATABASE are connection details."
-  (interactive (swb--read-connection 'swb-connection-mysql))
-  (let* ((connection (swb-connection-mysql (buffer-name) :host host :port port :user user :password password :database database)))
+ENGINE, HOST, PORT, USER, PASSWORD and DATABASE are connection details."
+  (interactive (swb--read-connection))
+  (let* ((constructor (swb--get-connection-constructor engine))
+         (connection (funcall constructor (buffer-name) :host host :port port :user user :password password :database database)))
     (set (make-local-variable 'swb-connection) connection)))
 
 (defun swb-maybe-connect ()
@@ -240,17 +266,15 @@ Open new clean workbench with the same connection details."
       (set (make-local-variable 'swb-connection) connection)
       (pop-to-buffer (current-buffer)))))
 
-;; TODO: add a function to change the active database
-(defun swb-new-workbench-mysql (host port user password database)
+(defun swb-new-workbench-mysql (engine host port user password database)
   "Create new mysql workbench.
 
-HOST, PORT, USER, PASSWORD and DATABASE are connection details."
-  (interactive (swb--read-connection 'swb-connection-mysql))
-  (let* ((buffer-name (generate-new-buffer-name "*swb-workbench*"))
-         (connection (swb-connection-mysql buffer-name :host host :port port :user user :password password :database database)))
+ENGINE, HOST, PORT, USER, PASSWORD and DATABASE are connection details."
+  (interactive (swb--read-connection))
+  (let* ((buffer-name (generate-new-buffer-name "*swb-workbench*")))
     (with-current-buffer (get-buffer-create buffer-name)
       (swb-mode)
-      (set (make-local-variable 'swb-connection) connection)
+      (swb-reconnect engine host port user password database)
       (pop-to-buffer (current-buffer)))))
 
 
@@ -637,6 +661,7 @@ Limits to `swb-show-data-row-page-size' lines of output."
       (add-file-local-variable 'swb-port (number-to-string (swb-get-port swb-connection)))
       (add-file-local-variable 'swb-user (swb-get-user swb-connection))
       (add-file-local-variable 'swb-database (swb-get-database swb-connection))
+      (add-file-local-variable 'swb-engine (oref swb-connection engine))
       (when (bound-and-true-p swb-crypt-key)
         ;; in case we have a crypt key we can also store the password
         (setq-local epg-context (epg-make-context nil t t))

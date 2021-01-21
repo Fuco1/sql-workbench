@@ -141,7 +141,7 @@ CALLBACK is called after the process has finished."
         (when callback (funcall callback (equal state "finished\n")))))))
 
 (defclass swb-connection-mysql (swb-iconnection)
-  ()
+  ((engine :type string :initform "mysql"))
   :documentation
   "Connection implementation for MySQL.")
 

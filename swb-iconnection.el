@@ -61,6 +61,7 @@ that.")
              :protection :protected
              :accessor swb-get-database
              :documentation "Database.")
+   (engine :type string)
    (active-queries :initarg :activequeries
                    :initform nil
                    :protection :protected
