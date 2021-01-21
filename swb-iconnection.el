@@ -168,5 +168,15 @@ Data are retrieved synchronously.")
   "Set DATABASE as default database for this connection"
   (oset this database database))
 
+(defmethod swb-R-get-connection ((this swb-iconnection))
+  (let ((conf (format
+               "list(user = %S, password = %S, host = %S, port = %S, dbname = %S)"
+               (oref this user)
+               (oref this password)
+               (oref this host)
+               (oref this port)
+               (oref this database))))
+    (format "swb__con__ <- rlang::invoke(dbConnect, c(MariaDB(), %s))" conf)))
+
 (provide 'swb-iconnection)
 ;;; swb-iconnection.el ends here
