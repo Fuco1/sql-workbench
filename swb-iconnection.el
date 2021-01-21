@@ -71,6 +71,15 @@ that.")
   :documentation
   "Connection interface for work with the database.")
 
+(defmethod swb-prepare-cmd-args ((this swb-iconnection) query extra-args)
+  "Prepare the argument list for the RDBS client process.
+
+THIS is an instance of `swb-iconnection'.
+
+QUERY is the query.
+
+EXTRA-ARGS are any extra arguments to pass to the process.")
+
 ;; TODO: show status in the mode line or header line somehow.  The
 ;; sentinel can update it once the process is finished.
 (defmethod swb-query ((this swb-iconnection) query buffer &rest args)

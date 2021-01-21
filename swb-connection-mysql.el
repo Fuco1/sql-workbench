@@ -43,25 +43,6 @@
     (set (make-local-variable 'font-lock-defaults) nil)
     (set (make-local-variable 'font-lock-keywords) nil)))
 
-(defun swb-mysql--prepare-cmd-args (query connection extra-args)
-  "Prepare the argument list.
-
-QUERY is the query, CONNECTION is an instance of
-`swb-connection-mysql', EXTRA-ARGS are any extra arguments to
-pass to the process."
-  (-concat extra-args
-           (unless (member "-B" extra-args)
-             (list "-vv"))
-           (list "-A"
-                 "--column-type-info"
-                 "-e" query
-                 "-h" (oref connection host)
-                 "-P" (number-to-string (oref connection port))
-                 "-u" (oref connection user)
-                 (concat "-p" (oref connection password)))
-           (when (slot-boundp connection :database)
-             (list (oref connection database)) )))
-
 (defun swb-mysql--fix-table-to-org-hline ()
   "Replace the initial and terminal the + in the hline with |."
   (beginning-of-line)
@@ -164,9 +145,23 @@ CALLBACK is called after the process has finished."
   :documentation
   "Connection implementation for MySQL.")
 
+(defmethod swb-prepare-cmd-args ((connection swb-connection-mysql) query extra-args)
+  (-concat extra-args
+           (unless (member "-B" extra-args)
+             (list "-vv"))
+           (list "-A"
+                 "--column-type-info"
+                 "-e" query
+                 "-h" (oref connection host)
+                 "-P" (number-to-string (oref connection port))
+                 "-u" (oref connection user)
+                 (concat "-p" (oref connection password)))
+           (when (slot-boundp connection :database)
+             (list (oref connection database)) )))
+
 (defmethod swb-query ((this swb-connection-mysql) query buffer &rest args)
   (swb-mysql--prepare-buffer buffer)
-  (let* ((cmd-args (swb-mysql--prepare-cmd-args query this (plist-get args :extra-args)))
+  (let* ((cmd-args (swb-prepare-cmd-args this query (plist-get args :extra-args)))
          (proc (apply 'start-process "swb-query" buffer "mysql" cmd-args))
          (sentinel (plist-get args :sentinel)))
     (when sentinel
@@ -175,7 +170,7 @@ CALLBACK is called after the process has finished."
 
 (defmethod swb-query-synchronously ((this swb-connection-mysql) query buffer &rest args)
   (swb-mysql--prepare-buffer buffer)
-  (let* ((cmd-args (swb-mysql--prepare-cmd-args query this (plist-get args :extra-args))))
+  (let* ((cmd-args (swb-prepare-cmd-args this query (plist-get args :extra-args))))
     (apply 'call-process "mysql" nil buffer nil cmd-args)
     buffer))
 
