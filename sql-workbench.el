@@ -41,6 +41,7 @@
 (require 'epg)
 
 (require 'swb-connection-mysql)
+(require 'swb-connection-mssql)
 
 
 ;;; Workbench mode
