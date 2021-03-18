@@ -893,6 +893,22 @@ Return the region as a list of lists of fields."
                ", "))
     (message "Copied %d rows to kill-ring" (length data))))
 
+(defun swb-result-copy-row-tibble (beg end)
+  "Copy current row as R tibble."
+  (interactive (swb-result--copy-interactive))
+  (let* ((data (swb-result--copy-get-data beg end))
+         (names (--map (plist-get it :name) (car data)))
+         (columns (apply 'cl-mapcar 'list (-map (lambda (row) (--map (plist-get it :item) row)) data))))
+    (kill-new (concat
+               "tibble("
+               (mapconcat
+                (-lambda ((name . column))
+                  (format "%s = c(%s)" name (mapconcat 'identity column ", ")))
+                (cl-mapcar 'cons names columns)
+                ", ")
+               ")"))
+    (message "Copied %d rows to kill-ring" (length data))))
+
 (defun swb-result-copy-row-csv (beg end)
   "Copy current row as CSV."
   (interactive (swb-result--copy-interactive))
@@ -1241,10 +1257,12 @@ _c_sv
 Copy the current row as:
 
 SQL (_r_)
+_t_ibble
 _p_hp
 _c_sv
 "
         ("r" swb-result-copy-row-sql)
+        ("t" swb-result-copy-row-tibble)
         ("p" swb-result-copy-row-php-assoc)
         ("c" swb-result-copy-row-csv)))
     (define-key map "e" 'swb-result-show-cell)
