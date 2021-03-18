@@ -267,6 +267,9 @@ Open new clean workbench with the same connection details."
       (set (make-local-variable 'swb-connection) connection)
       (pop-to-buffer (current-buffer)))))
 
+
+(defalias 'swb-new-workbench 'swb-new-workbench-mysql)
+
 (defun swb-new-workbench-mysql (engine host port user password database)
   "Create new mysql workbench.
 

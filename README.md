@@ -4,11 +4,22 @@ Working with SQL the convenient way!
 
 # Using sql-workbench
 
-Currently, only MySQL is supported.
+Currently supported engines are MySQL and MSSQL (work in progress).  The available features (non-exhaustive list):
 
-## Connecting to a MySQL instance
+| Feature                        | MySQL | MSSQL |
+|--------------------------------|-------|-------|
+| Send queries                   | ✓     | ✓     |
+| Get column types and metadata  | ✓     | ❌    |
+| Company-based autocompletion   | ✓     | ❌    |
+| Quick data preview             | ✓     | ❌    |
+| Describe table                 | ✓     | ❌    |
+| Show number of rows in a table | ✓     | ❌    |
+| Query for list of all tables   | ✓     | ❌    |
+| Copy data from result buffer   | ✓     | ✓     |
 
-Run `M-x swb-new-workbench-mysql`. It will prompt for `host`, `port`, `user`, `password`, and the database inside the MySQL server to use.
+## Connecting to a server
+
+Run `M-x swb-new-workbench`. It will prompt for `engine` `host`, `port`, `user`, `password`, and the database name to use.
 
 The workbench buffer will open.
 
