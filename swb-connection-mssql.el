@@ -37,6 +37,10 @@
   :documentation
   "Connection implementation for MSSQL.")
 
+(defun swb-mssql--process-metadata ()
+  (let ((cols (swb--result-get-column-names)))
+    (--map (list it :type "string") cols)))
+
 (defun swb-mssql--format-result-sentinel (proc state callback)
   "Sentinel for PROC once its STATE is exit.
 
@@ -65,6 +69,7 @@ CALLBACK is called after the process has finished."
        ((looking-at-p "^ERROR")
         (message "%s" (delete-and-extract-region (point) (line-end-position)))))
       (delete-region (point) (point-max))
+      (setq-local swb-metadata (swb-mssql--process-metadata))
       (when callback (funcall callback (equal state "finished\n"))))))
 
 (defmethod swb-prepare-cmd-args ((connection swb-connection-mssql) query extra-args)
