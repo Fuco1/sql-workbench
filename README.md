@@ -53,6 +53,22 @@ encrypted base64-encoded string with this key set as recipient.
 
 ## Using the results buffer
 
+The results buffer uses `swb-result-mode` which is derived from `org-mode` and contains an Org Mode table.  All the features of Org Mode (tables) therefore work automatically in the results buffer as well.  However, the button is made read-only to prevent accidental change of the data.  Consequently, some commands work without the `C-` or `C-c` prefixes for increased convenience.
+
+Use `f`, `b`, `n`, `p` (or arrow keys) for navigation, `j` to jump to a specific column.
+
+Use `s` to sort rows.  The sorting happens "offline" in the result buffer only, not by querying the database server.
+
+`+` and `%` produce the sum or the average of the column or a region.
+
+`c` and `r` allow you to copy the column or row(s) in various formats,
+such as csv, php array, R tibble or SQL values.
+
+`g` will revert the buffer by running the same query again.
+
+For more information run `C-h m` in the result buffer and see the list
+of key bindings.
+
 # Integration with other packages
 
 ## company
