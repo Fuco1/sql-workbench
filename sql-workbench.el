@@ -563,6 +563,16 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
               query buffer (point) (current-buffer)
               (list :inline-table inline-table))))))
 
+(defun swb-R-send-connection (var)
+  "Create an R database connection object for the current buffer."
+  (interactive "sTarget variable: \n")
+  (swb-maybe-connect)
+  (let ((connection swb-connection)
+        (ess-dialect "R"))
+    (with-temp-buffer
+      (insert (swb-R-get-connection connection var))
+      (ess-eval-region (point-min) (point-max) t))))
+
 (defun swb-R-send-current-query (var)
   "Send current query to an R process."
   (interactive "sTarget variable: \n")
