@@ -241,5 +241,11 @@ SQL query."
 (defmethod swb-get-tables ((this swb-connection-mysql))
   (swb-query-fetch-column this "show tables;"))
 
+(defmethod swb-get-table-info ((this swb-connection-mysql) table)
+  (swb-query-fetch-plist this (format "describe %s" table)))
+
+(defmethod swb-company-get-table-columns ((this swb-connection-mysql) table)
+  (--map (plist-get it :Field) (swb-get-table-info this table)))
+
 (provide 'swb-connection-mysql)
 ;;; swb-connection-mysql.el ends here

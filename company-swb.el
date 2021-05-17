@@ -56,11 +56,10 @@
                             (-concat
                              (-mapcat (-lambda ((table alias))
                                         (--map (propertize
-                                                (plist-get it :Field)
-                                                'meta table)
-                                               (swb-query-fetch-plist
+                                                it 'meta table)
+                                               (swb-company-get-table-columns
                                                 swb-connection
-                                                (format "describe %s" table))))
+                                                table)))
                                       tables)
                              ;; TODO: this is often invalid... we need
                              ;; to decide by context if we want to add

@@ -165,6 +165,11 @@ Data are retrieved synchronously.")
 (defmethod swb-get-tables ((this swb-iconnection))
   "Return a list of tables available at this connection in current database.")
 
+(defmethod swb-get-table-info ((this swb-iconnection) table)
+  "Return information about TABLE.
+
+The returned data is backend specific.")
+
 (defmethod swb-connection-use-database ((this swb-iconnection) database)
   "Set DATABASE as default database for this connection"
   (oset this database database))

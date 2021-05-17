@@ -124,5 +124,20 @@ CALLBACK is called after the process has finished."
 (defmethod swb-get-databases ((this swb-connection-mssql))
   (swb-query-fetch-column this "\\ld"))
 
+(defmethod swb-get-tables ((this swb-connection-mssql))
+  (swb-query-fetch-column this "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"))
+
+(defmethod swb-get-table-info ((this swb-connection-mssql) table)
+  (swb-query-fetch-column
+   this
+   (format "select COLUMN_NAME as Field
+            from information_schema.columns
+            where table_name = '%s'
+            order by ordinal_position;"
+           table)))
+
+(defmethod swb-company-get-table-columns ((this swb-connection-mssql) table)
+  (swb-get-table-info this table))
+
 (provide 'swb-connection-mssql)
 ;;; swb-connection-mssql.el ends here
