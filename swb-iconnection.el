@@ -38,7 +38,7 @@
          :protection :protected
          :accessor swb-get-host
          :documentation
-     "IP or URL where the database is located.
+         "IP or URL where the database is located.
 Should not contain port number, use the `port' attribute for
 that.")
    (port :initarg :port
@@ -57,6 +57,7 @@ that.")
              :protection :protected
              :documentation "Password.")
    (database :initarg :database
+             :initform ""
              :type string
              :protection :protected
              :accessor swb-get-database
@@ -169,6 +170,9 @@ Data are retrieved synchronously.")
   "Return information about TABLE.
 
 The returned data is backend specific.")
+
+(defmethod swb-company-get-table-columns ((this swb-iconnection) table)
+  (--map (plist-get it :Field) (swb-get-table-info this table)))
 
 (defmethod swb-connection-use-database ((this swb-iconnection) database)
   "Set DATABASE as default database for this connection"

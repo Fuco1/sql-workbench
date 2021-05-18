@@ -33,67 +33,145 @@
 (require 'swb-connection-mysql)
 
 (defclass swb-connection-mssql (swb-iconnection)
-  ((engine :type string :initform "mssql"))
+  ((engine :type string :initform "mssql")
+   (comint :initform nil)
+   (prev-database :type string :initform ""))
   :documentation
   "Connection implementation for MSSQL.")
 
-(defun swb-mssql--process-metadata ()
-  (let ((cols (swb--result-get-column-names)))
-    (--map (list it :type "string") cols)))
+(defun swb-mssql--process-metadata (metadata)
+  (with-temp-buffer
+    (insert metadata)
+    (swb-mssql--sqlcmd-table-to-org-table (current-buffer))
+    (-let* ((data (-remove-item 'hline (org-table-to-lisp)))
+            ((header . items) data)
+            (header (--map (intern (concat ":" it)) header))
+            (raw-plist (--map (-interleave header it) items)))
+      (--map (-cons*
+              (plist-get it :name)
+              :type
+              (plist-get it :system_type_name)
+              it)
+             raw-plist))))
 
-(defun swb-mssql--format-result-sentinel (proc state callback)
-  "Sentinel for PROC once its STATE is exit.
+(defun swb-mssql--sqlcmd-table-to-org-table (buffer)
+  "Format the sqlcmd table output as `org-mode' table.
 
-Format the table so that it is a valid `org-mode' table.
+BUFFER is the buffer with the raw query output"
+  (with-current-buffer buffer
+    (goto-char (point-min))
+    (insert "|-\n")
+    (while (re-search-forward "^" nil t) (insert "|"))
+    (goto-char (point-max))
+    (re-search-backward "rows affected")
+    (forward-line -1)
+    (delete-region (point) (point-max))
+    (goto-char (point-max))
+    (insert "|-")
+    (goto-char (point-min))
+    (forward-line 3)
+    (org-table-align)
+    ;; We call `org-table-align' twice because first call only fixes
+    ;; the table whereas the second call also minimizes the column
+    ;; widths.
+    (org-table-align)))
 
-CALLBACK is called after the process has finished."
-  ;; TODO: move this cleanup elsewhere, the display code could be
-  ;; reused between backends
-  (when (or (equal state "finished\n")
-            (equal state "exited abnormally with code 1\n"))
-    (with-current-buffer (process-buffer proc)
-      (goto-char (point-min))
-      (while (re-search-forward "^+-" nil t) (replace-match "|-"))
-      (goto-char (point-min))
-      (while (re-search-forward "-+$" nil t) (replace-match "-|"))
-      (goto-char (point-max))
-      (delete-char -1)
-      (beginning-of-line)
-      (cond
-       ((looking-at-p "^([0-9]+ row")
-        (message "%s" (replace-regexp-in-string
-                       "()" ""
-                       (delete-and-extract-region (point) (line-end-position)))))
-       ((looking-at-p "^Query OK")
-        (message "%s" (delete-and-extract-region (point) (line-end-position))))
-       ((looking-at-p "^ERROR")
-        (message "%s" (delete-and-extract-region (point) (line-end-position)))))
-      (delete-region (point) (point-max))
-      (setq-local swb-metadata (swb-mssql--process-metadata))
-      (when callback (funcall callback (equal state "finished\n"))))))
+(defun swb-mssql--format-result-buffer (buffer callback)
+  "Callback from the comint output filter to process the result.
 
-(defmethod swb-prepare-cmd-args ((connection swb-connection-mssql) query extra-args)
-  (-concat extra-args
-           (list "-Q" query
-                 "-S" (oref connection host)
-                 "-U" (oref connection user)
-                 "-P" (oref connection password))
-           (when (slot-boundp connection :database)
-             (list "-d" (oref connection database)))))
+This is called on the raw query output after all the output was
+received."
+  (with-current-buffer buffer
+    (let ((data (delete-and-extract-region
+                 (point-min)
+                 (save-excursion
+                   (goto-char (point-min))
+                   (re-search-forward "rows affected")
+                   (forward-line 1)
+                   (point)))))
+      (setq-local swb-metadata (swb-mssql--process-metadata data)))
+    (swb-mssql--sqlcmd-table-to-org-table (current-buffer))
+    (when callback (funcall callback t))))
+
+(defun swb--mssql-send-query (query &optional sink get-metadata)
+  "Send QUERY to the current-buffer's process.
+
+The `current-buffer' is assumed to be derived from `comint-mode'.
+
+If SINK is non-nil, set it as
+`sqlcmd-suppressed-output-sink-function'. It is assumed to be a
+function and it is called from `sqlcmd-maybe-suppress-output'
+every time input is received until it is unset or set to nil."
+  (setq-local sqlcmd-suppressed-output-sink-function (or sink t))
+  (comint-send-string
+   (get-buffer-process (current-buffer))
+   (format
+    "DECLARE @query nvarchar(max) = \"%s\";%s
+EXEC sp_executesql @query;
+go"
+    (replace-regexp-in-string "\"" "\"\"" query)
+    (if get-metadata
+        "\nEXEC sp_describe_first_result_set @query, null, 0;"
+      "")))
+  (comint-send-input nil t))
+
+(defun swb--mssql-create-comint-maybe (connection)
+  "Maybe (re)connect CONNECTION or recreate it if its parameters change."
+  (when (or (not (equal (oref connection prev-database)
+                        (oref connection database)))
+            (not (oref connection comint))
+            (not (buffer-live-p (oref connection comint)))
+            (not (get-buffer-process (oref connection comint))))
+    (when (oref connection comint)
+      (kill-buffer (oref connection comint)))
+    (oset connection prev-database (oref connection database))
+    (oset connection comint
+          (sqlcmd
+           (oref connection host)
+           (oref connection user)
+           (oref connection password)
+           (unless (string-empty-p (oref connection database))
+             (oref connection database))
+           nil 'no-display))))
 
 (defmethod swb-query ((this swb-connection-mssql) query buffer &rest args)
+  (swb--mssql-create-comint-maybe this)
   (swb-mysql--prepare-buffer buffer)
-  (let* ((cmd-args (swb-prepare-cmd-args this query (plist-get args :extra-args)))
-         (proc (apply 'start-process "swb-query" buffer "mssql-cli" cmd-args))
-         (sentinel (plist-get args :sentinel)))
-    (when sentinel
-      (set-process-sentinel proc sentinel))
+  (let ((comint (oref this comint))
+        (sentinel (plist-get args :sentinel)))
+    (with-current-buffer comint
+      (swb--mssql-send-query
+       query
+       (lambda (output)
+         (with-current-buffer buffer
+           (insert output)
+           (save-excursion
+             (goto-char (point-max))
+             (beginning-of-line)
+             (when (and sentinel
+                        (looking-at-p "1> "))
+               (funcall sentinel)))))
+       'get-metadata))
     buffer))
 
 (defmethod swb-query-synchronously ((this swb-connection-mssql) query buffer &rest args)
+  (swb--mssql-create-comint-maybe this)
   (swb-mysql--prepare-buffer buffer)
-  (let* ((cmd-args (swb-prepare-cmd-args this query (plist-get args :extra-args))))
-    (apply 'call-process "mssql-cli" nil buffer nil cmd-args)
+  (let ((comint (oref this comint))
+        (done nil))
+    (with-current-buffer comint
+      (swb--mssql-send-query
+       query
+       (lambda (output)
+         (with-current-buffer buffer
+           (insert output)
+           (save-excursion
+             (goto-char (point-max))
+             (beginning-of-line)
+             (when (looking-at-p "1> ")
+               (setq done t)))))))
+    (while (not done)
+      (sleep-for 0.01))
     buffer))
 
 (defmethod swb-query-format-result ((this swb-connection-mssql) query buffer &optional callback)
@@ -102,42 +180,48 @@ CALLBACK is called after the process has finished."
     (swb-set-active-queries this active-queries)
     (swb-query this query buffer
                :sentinel
-               (lambda (proc state)
-                 (swb-mssql--format-result-sentinel proc state callback)))))
+               (lambda ()
+                 (swb-mssql--format-result-buffer buffer callback)))))
 
 (defmethod swb-query-fetch-column ((this swb-connection-mssql) query)
+  (let ((data (swb-query-fetch-plist this query)))
+    (--map (cadr it) data)))
+
+(defmethod swb-query-fetch-plist ((this swb-connection-mssql) query)
   (with-temp-buffer
     (swb-query-synchronously this query (current-buffer))
+    (swb-mssql--sqlcmd-table-to-org-table (current-buffer))
     (goto-char (point-min))
-    (kill-region (point) (save-excursion
-                           (forward-line 3)
-                           (backward-char)
-                           (point)))
-    (goto-char (point-max))
-    (kill-region (point) (re-search-backward "^+-" nil t))
-    (goto-char (point-min))
-    (while (re-search-forward "^| " nil t) (replace-match ""))
-    (goto-char (point-min))
-    (while (re-search-forward " |$" nil t) (replace-match ""))
-    (cdr (-map 's-trim (split-string (buffer-string) "\n" t)))))
+    (-let* ((data (-remove-item 'hline (org-table-to-lisp)))
+            ((header . items) data)
+            (header (--map (intern (concat ":" it)) header)))
+      (--map (-interleave header it) items))))
 
 (defmethod swb-get-databases ((this swb-connection-mssql))
-  (swb-query-fetch-column this "\\ld"))
+  (swb-query-fetch-column this "SELECT name FROM sys.databases;"))
 
 (defmethod swb-get-tables ((this swb-connection-mssql))
   (swb-query-fetch-column this "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"))
 
 (defmethod swb-get-table-info ((this swb-connection-mssql) table)
-  (swb-query-fetch-column
+  (swb-query-fetch-plist
    this
-   (format "select COLUMN_NAME as Field
+   (format "select COLUMN_NAME as Field, IS_NULLABLE, DATA_TYPE as type
             from information_schema.columns
             where table_name = '%s'
             order by ordinal_position;"
            table)))
 
-(defmethod swb-company-get-table-columns ((this swb-connection-mssql) table)
-  (swb-get-table-info this table))
+(defmethod swb-R-get-connection ((this swb-connection-mssql) &optional var)
+  (let ((conf (format
+               "list(uid = %S, pwd = %S, server = %S, port = %S, database = %S, driver = \"ODBC Driver 17 for SQL Server\")"
+               (oref this user)
+               (oref this password)
+               (oref this host)
+               (oref this port)
+               (oref this database)))
+        (var (or var "swb__con__")))
+    (format "%s <- rlang::invoke(dbConnect, c(odbc::odbc(), %s))" var conf)))
 
 (provide 'swb-connection-mssql)
 ;;; swb-connection-mssql.el ends here

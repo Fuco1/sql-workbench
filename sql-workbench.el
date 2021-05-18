@@ -887,7 +887,8 @@ Return the region as a list of lists of fields."
                                  (list "STRING"
                                        "DATE"
                                        "DATETIME"
-                                       "BLOB"))
+                                       "BLOB"
+                                       "VARCHAR"))
                                 type)
                                (format "'%s'" item)
                              item)))
@@ -1311,13 +1312,13 @@ Column starts at 1."
       (let* ((current-type (swb-get-metadata :type cc))
              ;; TODO: precompute this
              (face (cond
-                    ((string-match-p "LONG\\|TINY" current-type)
+                    ((string-match-p "long\\|tiny\\|int" current-type)
                      font-lock-builtin-face)
-                    ((string-match-p "DOUBLE" current-type)
+                    ((string-match-p "double\\|decimal" current-type)
                      font-lock-keyword-face)
-                    ((string-match-p "STRING" current-type)
+                    ((string-match-p "string\\varchar" current-type)
                      font-lock-string-face)
-                    ((string-match-p "DATE" current-type)
+                    ((string-match-p "date" current-type)
                      font-lock-function-name-face))))
         (if (> (line-number-at-pos) 3)
             face
