@@ -244,8 +244,16 @@ SQL query."
 (defmethod swb-get-table-info ((this swb-connection-mysql) table)
   (swb-query-fetch-plist this (format "describe %s" table)))
 
-(defmethod swb-company-get-table-columns ((this swb-connection-mysql) table)
-  (--map (plist-get it :Field) (swb-get-table-info this table)))
+(defmethod swb-R-get-connection ((this swb-connection-mysql) &optional var)
+  (let ((conf (format
+               "list(user = %S, password = %S, host = %S, port = %S, dbname = %S)"
+               (oref this user)
+               (oref this password)
+               (oref this host)
+               (oref this port)
+               (oref this database)))
+        (var (or var "swb__con__")))
+    (format "%s <- rlang::invoke(dbConnect, c(MariaDB(), %s))" var conf)))
 
 (provide 'swb-connection-mysql)
 ;;; swb-connection-mysql.el ends here
