@@ -1007,9 +1007,9 @@ as `org-src-fontify-natively' is non-nil."
 ;; TODO: add command to switch to a different database on the same host
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
+  :after-hook (font-lock-add-keywords nil '((swb-fontify-org-code)))
   (use-local-map swb-mode-map)
   (setq header-line-format swb-header-line-format)
-  (font-lock-add-keywords nil '((swb-fontify-org-code)))
   (when (featurep 'flycheck)
     (flycheck-add-mode 'sql-sqlint 'swb-mode))
   (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer))
