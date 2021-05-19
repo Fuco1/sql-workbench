@@ -1316,7 +1316,7 @@ Column starts at 1."
                      font-lock-builtin-face)
                     ((string-match-p "double\\|decimal" current-type)
                      font-lock-keyword-face)
-                    ((string-match-p "string\\varchar" current-type)
+                    ((string-match-p "string\\|varchar" current-type)
                      font-lock-string-face)
                     ((string-match-p "date" current-type)
                      font-lock-function-name-face))))
