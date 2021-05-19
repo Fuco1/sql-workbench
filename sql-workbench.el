@@ -118,7 +118,16 @@ loaded loads this many rows."
 (defvar swb-query nil
   "Last executed query for this result buffer.")
 (defvar swb-metadata nil
-  "Metadata for the last returned result set.")
+  "Metadata for the last returned result set.
+
+The format is a list of lists where each item has a form (NAME
+. PLIST-META), with the `car' NAME being a string column name and
+`cdr' PLIST-META is a plist with additional information.
+
+The minimal implementation should contain at east the name and
+the type of the columns, that is (name :type type).
+
+See also `swb-get-metadata'.")
 (put 'swb-metadata 'permanent-local t)
 
 (defun swb--get-default-engine ()
@@ -519,6 +528,30 @@ function."
                                            (--map (concat "-- " it))
                                            (s-join "\n"))))))))
               (kill-buffer-and-window))
+             ((and source-buffer
+                   point
+                   (plist-get params :inline-graph))
+              (delete-window)
+              (let* ((graph-file (with-current-buffer result-buffer
+                                   (swb--result-as-graph
+                                    (org-table-to-lisp)
+                                    swb-metadata)))
+                     (i (with-selected-window (get-buffer-window source-buffer)
+                          `(image :type imagemagick
+                                  :file ,graph-file
+                                  :margin 10
+                                  :width ,(- (window-pixel-width) 20)
+                                  :max-height ,(round (* (window-pixel-height) 0.8))))))
+                (with-current-buffer source-buffer
+                  (save-excursion
+                    (goto-char point)
+                    (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                      (goto-char end)
+                      (forward-line 1)
+                      (unless (looking-at-p "$")
+                        (insert "\n"))
+                      (insert-image i))))
+                (kill-buffer result-buffer)))
              (t (set-window-point window (point-min))
                 (forward-line 3)
                 (swb-result-forward-cell 1)
@@ -556,15 +589,17 @@ If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
       (org-ctrl-c-ctrl-c)
     ;; TODO: move this `new-result-buffer' directly into
     ;; `swb--get-result-buffer'
-    (error (let* ((arg (prefix-numeric-value new-result-buffer))
-                  (buffer (if (and new-result-buffer (> arg 0))
+    (error (let* ((num-arg (prefix-numeric-value new-result-buffer))
+                  (buffer (if (and new-result-buffer (> num-arg 0))
                               (generate-new-buffer "*result*")
                             (swb--get-result-buffer)))
-                  (inline-table (= arg 0))
+                  (inline-table (= num-arg 0))
+                  (inline-graph (and new-result-buffer (= num-arg 1)))
                   (query (swb-get-query-at-point)))
              (swb-query-display-result
               query buffer (point) (current-buffer)
-              (list :inline-table inline-table))))))
+              (list :inline-table inline-table
+                    :inline-graph inline-graph))))))
 
 (defun swb-R-send-connection (var)
   "Create an R database connection object for the current buffer."
