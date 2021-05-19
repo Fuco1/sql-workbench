@@ -770,11 +770,74 @@ If no connection is established, try to connect first."
     map)
   "Keymap for swb mode.")
 
+(defun swb--src-font-lock-fontify-block (lang start end)
+  "Fontify code block.
+This function is called by emacs automatic fontification, as long
+as `org-src-fontify-natively' is non-nil."
+  (let ((lang-mode (org-src--get-lang-mode lang)))
+    (when (fboundp lang-mode)
+      (let ((string (buffer-substring-no-properties start end))
+            (modified (buffer-modified-p))
+            (org-buffer (current-buffer)))
+        (remove-text-properties start end '(face font-lock-face fontified nil))
+        (with-current-buffer
+            (get-buffer-create
+             (format " *org-src-fontification:%s*" lang-mode))
+          (let ((inhibit-modification-hooks nil))
+            (erase-buffer)
+            ;; Add string and a final space to ensure property change.
+            (insert string " "))
+          (unless (eq major-mode lang-mode) (funcall lang-mode))
+          (org-font-lock-ensure)
+          (let ((pos (point-min)) next)
+            (while (setq next (next-property-change pos))
+              ;; Handle additional properties from font-lock, so as to
+              ;; preserve, e.g., composition.
+              (dolist (prop (cons 'face font-lock-extra-managed-props))
+                (let ((new-prop (get-text-property pos prop)))
+                  (put-text-property
+                   (+ start (1- pos)) (1- (+ start next)) prop new-prop
+                   org-buffer)
+                  (when (eq prop 'face)
+                    (put-text-property
+                     (+ start (1- pos)) (1- (+ start next)) 'font-lock-face new-prop
+                     org-buffer))))
+              (setq pos next))))
+        (add-text-properties
+         start end
+         '(font-lock-fontified t fontified t font-lock-multiline t))
+        (set-buffer-modified-p modified)))))
+
+(defun swb-fontify-org-code (limit)
+  (remove-text-properties (point) limit '(font-lock-face))
+  (catch 'done
+    (let (element context)
+      (while (and (<= (point) limit)
+                  (setq element (org-element-at-point)))
+        (setq context
+              (org-element--parse-objects
+               (org-element-property :begin element)
+               (org-element-property :end element)
+               nil
+               (org-element-restriction (org-element-type element))))
+        (when (org-element-map (cons element context)
+                  '(fixed-width target plain-list table)
+                (lambda (element)
+                  (swb--src-font-lock-fontify-block
+                   "org"
+                   (org-element-property :begin element)
+                   (org-element-property :end element))
+                  (> (org-element-property :end element) limit))
+                nil t)
+          (throw 'done nil))
+        (goto-char (org-element-property :end element))))))
+
 ;; TODO: add command to switch to a different database on the same host
 (define-derived-mode swb-mode sql-mode "SWB"
   "Mode for editing SQL queries."
   (use-local-map swb-mode-map)
   (setq header-line-format swb-header-line-format)
+  (font-lock-add-keywords nil '((swb-fontify-org-code)))
   (when (featurep 'flycheck)
     (flycheck-add-mode 'sql-sqlint 'swb-mode))
   (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer)))
