@@ -743,7 +743,12 @@ source buffer.
 With ARG numeric prefix 1, generate a time-series graph of the
 result set. See `swb--result-as-graph' for details on how the
 graph is constructed and the prerequisites.  This feature
-requires working R software installation."
+requires working R software installation.
+
+With ARG numeric prefix 2, send the current query to an R
+process, query for a variable name and store the result there.
+This assumes database driver packages for R for the current
+engine are installed."
   (interactive "P")
   (swb-maybe-connect)
   (condition-case err
@@ -757,10 +762,13 @@ requires working R software installation."
                   (inline-table (= arg-num 0))
                   (inline-graph (and arg (= arg-num 1)))
                   (query (swb-get-query-at-point)))
-             (swb-query-display-result
-              query buffer (point) (current-buffer)
-              (list :inline-table inline-table
-                    :inline-graph inline-graph))))))
+             (if (= arg-num 2)
+                 (let ((current-prefix-arg nil))
+                   (call-interactively 'swb-R-send-current-query))
+               (swb-query-display-result
+                query buffer (point) (current-buffer)
+                (list :inline-table inline-table
+                      :inline-graph inline-graph)))))))
 
 (defun swb-R-send-connection (var)
   "Create an R database connection object for the current buffer."
@@ -910,6 +918,7 @@ If no connection is established, try to connect first."
     (define-key map (kbd "C-c C-t") 'swb-describe-table)
     (define-key map (kbd "C-c C-c") 'swb-send-current-query)
     (define-key map (kbd "C-c C-r") 'swb-reconnect)
+    (define-key map (kbd "C-c C-x C-r") 'swb-R-send-current-query)
     (define-key map (kbd "C-c C-s") 'swb-store-connection-to-file)
     (define-key map (kbd "C-c C-n") 'swb-show-number-of-rows-in-table)
     (define-key map (kbd "C-c C-e") 'swb-use-database)
