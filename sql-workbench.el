@@ -639,6 +639,25 @@ function."
             (cond
              ((and source-buffer
                    point
+                   (plist-get params :inline-table))
+              (with-current-buffer source-buffer
+                (save-excursion
+                  (goto-char point)
+                  (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                    (goto-char end)
+                    (when (looking-at " -- => \\(.*\\);")
+                      (delete-region (point) (match-end 0)))
+                    (forward-char)
+                    (let ((element (org-element-at-point)))
+                      (when (eq (org-element-type element) 'table)
+                        (delete-region (org-element-property :begin element)
+                                       (org-element-property :contents-end element))))
+                    (insert (with-current-buffer result-buffer
+                              (font-lock-ensure)
+                              (buffer-string))))))
+              (kill-buffer-and-window))
+             ((and source-buffer
+                   point
                    inlinep)
               (with-current-buffer source-buffer
                 (save-excursion
@@ -652,29 +671,6 @@ function."
                                       (if (= (length rows) 1)
                                           (car data)
                                         (s-join ", " data))))))))
-              (kill-buffer-and-window))
-             ((and source-buffer
-                   point
-                   (plist-get params :inline-table))
-              (with-current-buffer source-buffer
-                (save-excursion
-                  (goto-char point)
-                  (-let (((_ . end) (swb-get-query-bounds-at-point)))
-                    (goto-char end)
-                    (when (looking-at " -- => \\(.*\\);")
-                      (delete-region (point) (match-end 0)))
-                    (when (looking-at "\n\\(-- |\\)")
-                      (let ((beg (match-beginning 1)))
-                        (save-excursion
-                          (goto-char beg)
-                          (while (looking-at-p "-- |")
-                            (forward-line 1))
-                          (delete-region beg (point)))))
-                    (insert (format "\n%s"
-                                    (with-current-buffer result-buffer
-                                      (->> (split-string (buffer-string) "\n" 'omit-nulls)
-                                           (--map (concat "-- " it))
-                                           (s-join "\n"))))))))
               (kill-buffer-and-window))
              ((and source-buffer
                    point
@@ -696,6 +692,8 @@ function."
                     (-let (((_ . end) (swb-get-query-bounds-at-point)))
                       (goto-char end)
                       (forward-line 1)
+                      (when (eq (car (get-text-property (point) 'display)) 'image)
+                        (delete-char 1))
                       (unless (looking-at-p "$")
                         (insert "\n"))
                       (insert-image i))))
