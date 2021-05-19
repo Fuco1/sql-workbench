@@ -436,9 +436,14 @@ results has columns:
 ;; move it to the class
 (defun swb-get-query-at-point ()
   "Get query at point."
-  (let ((q (-let (((beg . end) (swb-get-query-bounds-at-point)))
-             (buffer-substring-no-properties beg end))))
-    (swb--expand-columns-in-select-query (s-trim q))))
+  (-let* (((beg . end) (swb-get-query-bounds-at-point))
+          (q (buffer-substring-no-properties beg end))
+          (with-expanded-star (swb--expand-columns-in-select-query (s-trim q))))
+    (org-babel-expand-noweb-references
+     `("sql"
+       ,with-expanded-star
+       ((:noweb . "yes"))
+       "" nil beg "(ref:%s)"))))
 
 (defun swb-copy-query-at-point ()
   "Copy query at point as new kill."
