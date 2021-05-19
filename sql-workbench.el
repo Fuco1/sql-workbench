@@ -746,7 +746,8 @@ requires working R software installation."
   (interactive "P")
   (swb-maybe-connect)
   (condition-case err
-      (org-ctrl-c-ctrl-c)
+      (with-syntax-table swb-org-syntax-table
+        (org-ctrl-c-ctrl-c))
     (error (let* ((raw (and (listp arg) (car arg)))
                   (arg-num (prefix-numeric-value arg))
                   (buffer (if raw
@@ -985,7 +986,9 @@ as `org-src-fontify-natively' is non-nil."
   (font-lock-add-keywords nil '((swb-fontify-org-code)))
   (when (featurep 'flycheck)
     (flycheck-add-mode 'sql-sqlint 'swb-mode))
-  (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer)))
+  (set (make-local-variable 'swb-result-buffer) (swb--get-result-buffer))
+  (set (make-local-variable 'swb-org-syntax-table)
+       (with-temp-buffer (org-mode) (syntax-table))))
 
 ;;;###autoload (add-to-list 'auto-mode-alist '("\\.swb\\'" . swb-mode))
 
