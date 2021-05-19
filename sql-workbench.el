@@ -307,6 +307,15 @@ ENGINE, HOST, PORT, USER, PASSWORD and DATABASE are connection details."
                                       (not (nth 4 (syntax-ppss))))))
                      (point))
                  (error (point-max))))))
+    ;; scan all the org elements from beg and if there is any
+    ;; non-paragraph element move the beg after it
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (let ((el (org-element-at-point)))
+          (when (not (eq (org-element-type el) 'paragraph))
+            (setq beg (org-element-property :end el)))
+          (goto-char (org-element-property :end el)))))
     (cons beg end)))
 
 (defun swb--get-tables (sql)
