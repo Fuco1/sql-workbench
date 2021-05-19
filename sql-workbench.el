@@ -780,24 +780,37 @@ engine are installed."
       (insert (swb-R-get-connection connection var))
       (ess-eval-region (point-min) (point-max) t))))
 
-(defun swb-R-send-current-query (var)
+(defun swb-R-send-current-query (var &optional arg)
   "Send current query to an R process."
-  (interactive "sTarget variable: \n")
+  (interactive "sTarget variable: \nP")
   (swb-maybe-connect)
-  (let ((query (swb-get-query-at-point))
-        (connection swb-connection)
-        (ess-dialect "R"))
-    (with-temp-buffer
-      (insert
-       (format "
+  (save-selected-window
+    (let ((query (swb-get-query-at-point))
+          (connection swb-connection)
+          (source-buffer (current-buffer))
+          (dialect ess-dialect)
+          (local-process-name ess-local-process-name))
+      (with-temp-buffer
+        (ess-r-mode)
+        (insert
+         (format "
 %s
 %s <- dbGetQuery(swb__con__, %S) %%>%% as_tibble
 dbDisconnect(swb__con__)
 "
-               (swb-R-get-connection connection)
-               var
-               query))
-      (ess-eval-region (point-min) (point-max) t))))
+                 (substring-no-properties (swb-R-get-connection connection))
+                 (substring-no-properties var)
+                 (substring-no-properties query)))
+        (setq-local ess-dialect dialect)
+        (setq-local ess-local-process-name local-process-name)
+        (ess-eval-region (point-min) (point-max) t)
+        (let ((dialect ess-dialect)
+              (local-process-name ess-local-process-name))
+          (with-current-buffer source-buffer
+            (setq-local ess-dialect dialect)
+            (setq-local ess-local-process-name local-process-name))))))
+  (when arg
+    (pop-to-buffer (ess-get-process-buffer))))
 
 (defun swb--read-table ()
   "Completing read for a table."
