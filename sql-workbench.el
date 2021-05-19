@@ -470,6 +470,139 @@ results has columns:
    connection
    (-remove-item query (swb-get-active-queries connection))))
 
+(defun swb--result-as-graph (data metadata)
+  "Render DATA as a time-series graph.
+
+DATA is a data structure created with `org-table-to-lisp'. First
+non-empty row which is not 'hline is assumed to contain column
+names.  This MUST be present.
+
+METADATA is an instance of `swb-metadata' describing the result
+set.
+
+Several heuristics are used to determine the index, key and
+observation columns.
+
+- Index column defines the time index of the time series, for
+  example daily or monthly timestamps.  We take the first column
+  with database type date to be the index column.
+
+- The key index defines a unique time series and observation.
+  One data table can contain multiple time series, for example
+  determined by user_id.  There, the combination of index (date)
+  and user_id would uniquely identify a particular observation.
+  The table can have multiple keys.
+
+  We identify the keys as all columns ending with
+  \"id\" (case-insensitive).
+
+- For the observations, any column which holds decimal, float or
+  double data will be taken as observation.  The table can have
+  multiple observations.
+
+The plotting is done with the statistical software R, therefore
+this feature requires a present working installation of R in
+version at least 3.6.  Several other packages are also necessary:
+
+- dplyr
+- tidyr
+- tsibble
+- ggplot2
+- fabletools
+- lubridate
+
+To install packages in R, first start the REPL by running \"R\"
+in the terminal, then run:
+
+   install.packages(c(\"dplyr\", \"tidyr\", \"tsibble\", \"ggplot2\", \"fabletools\", \"lubridate\"))
+
+After the command finishes, you can exit the REPL by hitting C-d
+twice.  When prompted to save workspace image, say no."
+  (-let* ((graphics-file-name (make-temp-file "swb-ggplot-" nil ".png"))
+          (code-file-name (make-temp-file "swb-ggplot-" nil ".R"))
+          (data (-remove-item 'hline data))
+          ((header . items) data)
+          (index (car (--first (string-match-p "date" (plist-get (cdr it) :type)) metadata)))
+          (key-cols (-map 'car (--filter
+                                (and (string-match-p "int\\|bool\\|bit" (plist-get (cdr it) :type))
+                                     (string-match-p "id$" (car it)))
+                                metadata)))
+          (ts-cols (-map 'car
+                         (--filter (string-match-p
+                                    "decimal\\|float\\|double"
+                                    (plist-get (cdr it) :type))
+                                   metadata)))
+          (items (apply '-zip items))
+          (columns (--map-indexed
+                    (let ((type (plist-get (cdr (nth it-index metadata)) :type)))
+                      (format "%s = %sc(%s)%s"
+                              (car it)
+                              (if (string-match-p "date" type)
+                                  "as.Date("
+                                "")
+                              (mapconcat
+                               (lambda (x)
+                                 (if (equal x "NULL")
+                                     "NA"
+                                   (cond
+                                    ((string-match-p
+                                      (regexp-opt '("date" "string" "varchar"))
+                                      type)
+                                     (format "%S" x))
+                                    (t x))))
+                               (cdr it) ", ")
+                              (if (string-match-p "date" type)
+                                  ")"
+                                "")))
+                    (-zip header items)))
+          (data-str (progn
+                      (message "Using %s as index and %s as keys.  Observations are: %s"
+                               index
+                               (s-join ", " key-cols)
+                               (s-join ", " ts-cols))
+                      (format
+                       "data <- tibble(%s) %%>%% select(%s) %%>%% pivot_longer(-c(%s)) %%>%% as_tsibble(index = \"%s\", key = c(%s))"
+                       (s-join ", " columns)
+                       (s-join ", " (append (list index) key-cols ts-cols))
+                       (s-join ", " (append (list index) key-cols))
+                       index
+                       (s-join ", " (--map (format "\"%s\"" it) (append key-cols (list "name"))))))))
+
+    (unwind-protect
+        (progn
+          (f-write-text
+           ;; ## plot <- ggplot(data) + geom_line(aes(x = %s, y = value, color = name))
+           (format "
+library(dplyr)
+library(tidyr)
+library(tsibble)
+library(ggplot2)
+library(fabletools)
+library(lubridate)
+
+index <- \"%s\"
+%s
+dates <- pull(data, {{index}})
+if (all(dates == floor_date(dates, 'month'))) {
+    data <- mutate(data, {{index}} := yearmonth(.data[[index]]))
+}
+
+data <- fill_gaps(data, value = 0, .full = TRUE)
+
+plot <- autoplot(data, vars(value))
+ggsave(\"%s\", plot = plot, width = 10, height = 8, dpi = 300)
+"
+                   index
+                   data-str
+                   graphics-file-name)
+           'utf-8
+           code-file-name)
+          (call-process "Rscript" nil nil nil code-file-name))
+      ;;(delete-file code-file-name)
+      nil
+      )
+    graphics-file-name))
+
 (defun swb--result-callback (connection query &optional point source-buffer params)
   "Return a result callback.
 
@@ -593,22 +726,34 @@ interpreted by the result callback."
 ;; TODO: warn before sending unsafe queries
 ;; TODO: add a version which replaces the SELECT clause with count(*)
 ;; so you can see only the number of results
-(defun swb-send-current-query (&optional new-result-buffer)
+(defun swb-send-current-query (&optional arg)
   "Send the query under the cursor to the connection of current buffer.
 
-If NEW-RESULT-BUFFER is non-nil, display the result in a separate buffer."
+If the current part of a buffer has org-like syntax, try to run
+`org-ctrl-c-ctrl-c' first.  This allows you to use `org-mode'
+checklists or source blocks within swb buffers.
+
+If raw ARG \\[universal-argument] is passed, display the result
+in a separate buffer.
+
+With ARG numeric prefix 0 (zero), show the result in-line in the
+source buffer.
+
+With ARG numeric prefix 1, generate a time-series graph of the
+result set. See `swb--result-as-graph' for details on how the
+graph is constructed and the prerequisites.  This feature
+requires working R software installation."
   (interactive "P")
   (swb-maybe-connect)
   (condition-case err
       (org-ctrl-c-ctrl-c)
-    ;; TODO: move this `new-result-buffer' directly into
-    ;; `swb--get-result-buffer'
-    (error (let* ((num-arg (prefix-numeric-value new-result-buffer))
-                  (buffer (if (and new-result-buffer (> num-arg 0))
+    (error (let* ((raw (and (listp arg) (car arg)))
+                  (arg-num (prefix-numeric-value arg))
+                  (buffer (if raw
                               (generate-new-buffer "*result*")
                             (swb--get-result-buffer)))
-                  (inline-table (= num-arg 0))
-                  (inline-graph (and new-result-buffer (= num-arg 1)))
+                  (inline-table (= arg-num 0))
+                  (inline-graph (and arg (= arg-num 1)))
                   (query (swb-get-query-at-point)))
              (swb-query-display-result
               query buffer (point) (current-buffer)

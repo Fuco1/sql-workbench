@@ -4,34 +4,47 @@ Working with SQL the convenient way!
 
 # Using sql-workbench
 
-Currently supported engines are MySQL and MSSQL (work in progress).  The available features (non-exhaustive list):
+Currently supported engines are MySQL and MSSQL (work in progress).
+The available features (non-exhaustive list):
 
 | Feature                        | MySQL | MSSQL |
 |--------------------------------|-------|-------|
 | Send queries                   | ✓     | ✓     |
-| Get column types and metadata  | ✓     | ❌    |
-| Company-based autocompletion   | ✓     | ❌    |
+| Get column types and metadata  | ✓     | ✓     |
+| Company-based autocompletion   | ✓     | ✓     |
 | Quick data preview             | ✓     | ❌    |
 | Describe table                 | ✓     | ❌    |
 | Show number of rows in a table | ✓     | ❌    |
-| Query for list of all tables   | ✓     | ❌    |
+| Query for list of all tables   | ✓     | ✓     |
 | Copy data from result buffer   | ✓     | ✓     |
 
 ## Connecting to a server
 
-Run `M-x swb-new-workbench`. It will prompt for `engine` `host`, `port`, `user`, `password`, and the database name to use.
+Run `M-x swb-new-workbench`. It will prompt for `engine` `host`,
+`port`, `user`, `password`, and the database name to use.
 
 The workbench buffer will open.
 
 ## Using the workbench buffer
 
-The workbench buffer is the sql-workbench's main interface to the database. Here are some things you can do with it.
+The workbench (source) buffer is the sql-workbench's main interface to
+the database. Here are some things you can do with it.
 
-* `swb-send-current-query` (`C-c C-c`) takes the sql statement at point and runs it on the database. The results will be displayed in the `*swb-results*` buffer.
+* `swb-send-current-query` (`C-c C-c`) takes the sql statement at
+  point and runs it on the database. The results will be displayed in
+  the `*swb-results*` buffer.  With `C-u` the result will be shown in
+  a new permanent buffer, meaning it will not replace its content
+  after a new query is run.  With `C-0` the results will be inserted
+  in-line into the source buffer.  With `C-1` (experimental) a
+  time-series graph will be inserted into the source buffer.  This
+  feature requires a working R installation with several packages, see
+  the `swb-send-current-query` function help for info.
 
-* `swb-describe-table` (`C-c C-t`) prompts for a table name, and displays the table schema in the `*swb-results*` buffer.
+* `swb-describe-table` (`C-c C-t`) prompts for a table name, and
+  displays the table schema in the `*swb-results*` buffer.
 
-* `swb-show-data-in-table` (`C-c C-d`) prompts for a table name, and displays the first 500 entries in that table.
+* `swb-show-data-in-table` (`C-c C-d`) prompts for a table name, and
+  displays the first 500 entries in that table.
 
 Because the workbench buffer is just a regular buffer you can do all
 the usual things with it including saving it to a file and then
@@ -53,11 +66,18 @@ encrypted base64-encoded string with this key set as recipient.
 
 ## Using the results buffer
 
-The results buffer uses `swb-result-mode` which is derived from `org-mode` and contains an Org Mode table.  All the features of Org Mode (tables) therefore work automatically in the results buffer as well.  However, the button is made read-only to prevent accidental change of the data.  Consequently, some commands work without the `C-` or `C-c` prefixes for increased convenience.
+The results buffer uses `swb-result-mode` which is derived from
+`org-mode` and contains an Org Mode table.  All the features of Org
+Mode (tables) therefore work automatically in the results buffer as
+well.  However, the button is made read-only to prevent accidental
+change of the data.  Consequently, some commands work without the `C-`
+or `C-c` prefixes for increased convenience.
 
-Use `f`, `b`, `n`, `p` (or arrow keys) for navigation, `j` to jump to a specific column.
+Use `f`, `b`, `n`, `p` (or arrow keys) for navigation, `j` to jump to
+a specific column.
 
-Use `s` to sort rows.  The sorting happens "offline" in the result buffer only, not by querying the database server.
+Use `s` to sort rows.  The sorting happens "offline" in the result
+buffer only, not by querying the database server.
 
 `+` and `%` produce the sum or the average of the column or a region.
 
