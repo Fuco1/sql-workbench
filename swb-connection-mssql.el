@@ -63,7 +63,7 @@ BUFFER is the buffer with the raw query output"
     (insert "|-\n")
     (while (re-search-forward "^" nil t) (insert "|"))
     (goto-char (point-max))
-    (re-search-backward "rows affected")
+    (re-search-backward "rows affected" nil t)
     (forward-line -1)
     (delete-region (point) (point-max))
     (goto-char (point-max))
@@ -82,25 +82,33 @@ BUFFER is the buffer with the raw query output"
 This is called on the raw query output after all the output was
 received."
   (with-current-buffer buffer
-    ;; this is the first "n rows affected" for inserting the
-    ;; sp_describe_first_result_set result into a temporary table
-    (delete-region
-     (point-min)
-     (save-excursion
-       (goto-char (point-min))
-       (re-search-forward "rows affected")
-       (forward-line 1)
-       (point)))
-    (let ((data (delete-and-extract-region
-                 (point-min)
-                 (save-excursion
-                   (goto-char (point-min))
-                   (re-search-forward "rows affected")
-                   (forward-line 1)
-                   (point)))))
-      (setq-local swb-metadata (swb-mssql--process-metadata data)))
-    (swb-mssql--sqlcmd-table-to-org-table (current-buffer))
-    (when callback (funcall callback t))))
+    (if (save-excursion
+          (goto-char (point-min))
+          (looking-at-p "Msg "))
+        (if (= (save-excursion (goto-char (point-max)) (line-number-at-pos)) 2)
+            (progn
+              (goto-char (point-min))
+              (message (buffer-substring (line-beginning-position) (line-end-position))))
+          (display-buffer buffer))
+      ;; this is the first "n rows affected" for inserting the
+      ;; sp_describe_first_result_set result into a temporary table
+      (delete-region
+       (point-min)
+       (save-excursion
+         (goto-char (point-min))
+         (re-search-forward "rows affected" nil t)
+         (forward-line 1)
+         (point)))
+      (let ((data (delete-and-extract-region
+                   (point-min)
+                   (save-excursion
+                     (goto-char (point-min))
+                     (re-search-forward "rows affected" nil t)
+                     (forward-line 1)
+                     (point)))))
+        (setq-local swb-metadata (swb-mssql--process-metadata data)))
+      (swb-mssql--sqlcmd-table-to-org-table (current-buffer))
+      (when callback (funcall callback t)))))
 
 (defun swb--mssql-send-query (query &optional sink get-metadata)
   "Send QUERY to the current-buffer's process.
