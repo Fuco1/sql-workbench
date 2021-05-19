@@ -913,6 +913,7 @@ If no connection is established, try to connect first."
     (define-key map (kbd "C-c C-n") 'swb-show-number-of-rows-in-table)
     (define-key map (kbd "C-c C-e") 'swb-use-database)
     (define-key map (kbd "C-c C-k") 'swb-copy-query-at-point)
+    (define-key map (kbd "C-c C-,") 'org-insert-structure-template)
     map)
   "Keymap for swb mode.")
 
