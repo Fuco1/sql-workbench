@@ -967,12 +967,16 @@ as `org-src-fontify-natively' is non-nil."
                nil
                (org-element-restriction (org-element-type element))))
         (when (org-element-map (cons element context)
-                  '(fixed-width target plain-list table)
+                  '(fixed-width target plain-list table src-block bold italic)
                 (lambda (element)
-                  (swb--src-font-lock-fontify-block
-                   "org"
-                   (org-element-property :begin element)
-                   (org-element-property :end element))
+                  (when (or (not (memq (org-element-type element)
+                                       '(bold italic)))
+                            (nth 4 (syntax-ppss
+                                    (org-element-property :begin element))))
+                    (swb--src-font-lock-fontify-block
+                     "org"
+                     (org-element-property :begin element)
+                     (org-element-property :end element)))
                   (> (org-element-property :end element) limit))
                 nil t)
           (throw 'done nil))
