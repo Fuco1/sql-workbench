@@ -958,7 +958,7 @@ as `org-src-fontify-natively' is non-nil."
   (remove-text-properties (point) limit '(font-lock-face))
   (catch 'done
     (let (element context)
-      (while (and (<= (point) limit)
+      (while (and (< (point) limit)
                   (setq element (org-element-at-point)))
         (setq context
               (org-element--parse-objects
