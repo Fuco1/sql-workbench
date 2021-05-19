@@ -6,7 +6,7 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 21st July 2015
-;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0") (shut-up "0.3.2") (json-mode "1.6.0"))
+;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0") (shut-up "0.3.2") (json-mode "1.6.0") (hydra "0.15)"))
 ;; Keywords: data
 
 ;; This program is free software; you can redistribute it and/or
@@ -33,6 +33,7 @@
 (require 'ov)
 (require 'shut-up)
 (require 'json-mode)
+(require 'hydra)
 
 (require 'sql)
 (require 'org)
