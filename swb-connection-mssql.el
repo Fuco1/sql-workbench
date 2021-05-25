@@ -31,6 +31,7 @@
 (require 'eieio)
 (require 'swb-iconnection)
 (require 'swb-connection-mysql)
+(require 'sqlcmd)
 
 (defclass swb-connection-mssql (swb-iconnection)
   ((engine :type string :initform "mssql")
