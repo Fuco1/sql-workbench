@@ -653,7 +653,21 @@ function."
                         (delete-region (org-element-property :begin element)
                                        (org-element-property :contents-end element))))
                     (insert (with-current-buffer result-buffer
-                              (font-lock-ensure)
+                              (org-font-lock-ensure)
+                              (let ((inhibit-read-only t)
+                                    (pos (point-min))
+                                    next)
+                                (while (and (setq
+                                             next
+                                             (next-single-char-property-change pos 'face))
+                                            (< next (buffer-size)))
+                                  (when-let ((new-prop (get-text-property pos 'face)))
+                                    (put-text-property
+                                     pos next 'font-lock-face new-prop))
+                                  (setq pos next))
+                                (remove-text-properties
+                                 (point-min) (point-max)
+                                 '(face)))
                               (buffer-string))))))
               (kill-buffer-and-window))
              ((and source-buffer
@@ -947,7 +961,7 @@ as `org-src-fontify-natively' is non-nil."
       (let ((string (buffer-substring-no-properties start end))
             (modified (buffer-modified-p))
             (org-buffer (current-buffer)))
-        (remove-text-properties start end '(face font-lock-face fontified nil))
+        (remove-text-properties start end '(face))
         (with-current-buffer
             (get-buffer-create
              (format " *org-src-fontification:%s*" lang-mode))
@@ -965,19 +979,26 @@ as `org-src-fontify-natively' is non-nil."
                 (let ((new-prop (get-text-property pos prop)))
                   (put-text-property
                    (+ start (1- pos)) (1- (+ start next)) prop new-prop
-                   org-buffer)
-                  (when (eq prop 'face)
-                    (put-text-property
-                     (+ start (1- pos)) (1- (+ start next)) 'font-lock-face new-prop
-                     org-buffer))))
-              (setq pos next))))
+                   org-buffer)))
+              (setq pos next))
+            (setq pos (point-min))
+            (with-current-buffer org-buffer
+              (goto-char start)
+              (while (and (setq
+                           next
+                           (next-single-char-property-change
+                            pos 'font-lock-face nil end))
+                          next
+                          (< next end))
+                (when (get-text-property pos 'font-lock-face)
+                  (remove-text-properties pos next '(face)))
+                (setq pos next)))))
         (add-text-properties
          start end
          '(font-lock-fontified t fontified t font-lock-multiline t))
         (set-buffer-modified-p modified)))))
 
 (defun swb-fontify-org-code (limit)
-  (remove-text-properties (point) limit '(font-lock-face))
   (catch 'done
     (let (element context)
       (while (and (< (point) limit)
@@ -1595,17 +1616,17 @@ Column starts at 1."
   ;; TODO: put "column" property on the text?
   (let ((cc (org-table-current-column)))
     (when (< 0 cc)
-      (let* ((current-type (swb-get-metadata :type cc))
-             ;; TODO: precompute this
-             (face (cond
-                    ((string-match-p "long\\|tiny\\|int" current-type)
-                     font-lock-builtin-face)
-                    ((string-match-p "double\\|decimal" current-type)
-                     font-lock-keyword-face)
-                    ((string-match-p "string\\|varchar" current-type)
-                     font-lock-string-face)
-                    ((string-match-p "date" current-type)
-                     font-lock-function-name-face))))
+      (-when-let* ((current-type (swb-get-metadata :type cc))
+                   ;; TODO: precompute this
+                   (face (cond
+                          ((string-match-p "long\\|tiny\\|int" current-type)
+                           font-lock-builtin-face)
+                          ((string-match-p "double\\|decimal" current-type)
+                           font-lock-keyword-face)
+                          ((string-match-p "string\\|varchar" current-type)
+                           font-lock-string-face)
+                          ((string-match-p "date" current-type)
+                           font-lock-function-name-face))))
         (if (> (line-number-at-pos) 3)
             face
           'org-table)))))
