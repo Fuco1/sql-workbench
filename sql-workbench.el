@@ -696,7 +696,7 @@ function."
                         (delete-char 1))
                       (unless (looking-at-p "$")
                         (insert "\n"))
-                      (insert-image i))))
+                      (insert-image i ";"))))
                 (kill-buffer result-buffer)))
              (t (set-window-point window (point-min))
                 (forward-line 3)
