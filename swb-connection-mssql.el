@@ -227,14 +227,31 @@ drop table #swb_query_meta"
 (defmethod swb-get-tables ((this swb-connection-mssql))
   (swb-query-fetch-column this "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"))
 
-(defmethod swb-get-table-info ((this swb-connection-mssql) table)
-  (swb-query-fetch-plist
-   this
-   (format "select COLUMN_NAME as Field, IS_NULLABLE, DATA_TYPE as type
-            from information_schema.columns
-            where table_name = '%s'
-            order by ordinal_position;"
-           table)))
+(defmethod swb-get-table-info-query ((this swb-connection-mssql) table)
+  (format
+   "SELECT
+  c.Column_Name as [Field],
+  MAX(c.DATA_TYPE) as [Type],
+  MAX(c.IS_NULLABLE) as [Null],
+  STRING_AGG(tc.Constraint_Type, ', ') as [Key],
+  MAX(c.COLUMN_DEFAULT) as [Default]
+FROM
+  INFORMATION_SCHEMA.COLUMNS c
+LEFT JOIN
+  INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu on (
+    c.Column_Name = ccu.Column_Name AND
+    c.Table_Name = ccu.Table_Name
+  )
+LEFT JOIN
+  INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc on (
+    ccu.Constraint_Name = tc.Constraint_Name AND
+    ccu.Table_Name = tc.Table_Name
+  )
+WHERE
+  c.Table_Name = '%s'
+GROUP BY c.Column_Name, c.ordinal_position
+order by c.ordinal_position;"
+   table))
 
 (defmethod swb-R-get-connection ((this swb-connection-mssql) &optional var)
   (let ((conf (format

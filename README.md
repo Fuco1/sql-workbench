@@ -13,7 +13,7 @@ The available features (non-exhaustive list):
 | Get column types and metadata  | ✓     | ✓     |
 | Company-based autocompletion   | ✓     | ✓     |
 | Quick data preview             | ✓     | ❌    |
-| Describe table                 | ✓     | ❌    |
+| Describe table                 | ✓     | ✓    |
 | Show number of rows in a table | ✓     | ❌    |
 | Query for list of all tables   | ✓     | ✓     |
 | Copy data from result buffer   | ✓     | ✓     |

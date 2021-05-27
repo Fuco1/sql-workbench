@@ -880,7 +880,6 @@ Limits to `swb-show-data-row-page-size' lines of output."
              (propertize (swb-format-number n) 'face 'font-lock-constant-face)
              (propertize table 'face 'font-lock-comment-face))))
 
-;; TODO: make this into a generic method
 ;; TODO: add a version to get `show create table'
 ;; TODO: show index from <table> shows more detailed information about
 ;; keys, maybe we could merge this and the `describe table' outputs
@@ -892,8 +891,9 @@ Limits to `swb-show-data-row-page-size' lines of output."
 (defun swb-describe-table (table)
   "Describe TABLE schema."
   (interactive (list (swb--read-table)))
-  (swb-query-display-result (format "DESCRIBE `%s`;" table)
-                            (get-buffer-create (format "*schema-%s*" table))))
+  (swb-query-display-result
+   (swb-get-table-info-query swb-connection table)
+   (get-buffer-create (format "*schema-%s*" table))))
 
 (defun swb-store-connection-to-file ()
   "Store connection details as file-local variables."

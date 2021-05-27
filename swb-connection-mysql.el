@@ -241,8 +241,8 @@ SQL query."
 (defmethod swb-get-tables ((this swb-connection-mysql))
   (swb-query-fetch-column this "show tables;"))
 
-(defmethod swb-get-table-info ((this swb-connection-mysql) table)
-  (swb-query-fetch-plist this (format "describe %s" table)))
+(defmethod swb-get-table-info-query ((this swb-connection-mysql) table)
+  (format "describe %s" table))
 
 (defmethod swb-R-get-connection ((this swb-connection-mysql) &optional var)
   (let ((conf (format

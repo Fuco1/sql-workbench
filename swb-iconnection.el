@@ -169,7 +169,11 @@ Data are retrieved synchronously.")
 (defmethod swb-get-table-info ((this swb-iconnection) table)
   "Return information about TABLE.
 
-The returned data is backend specific.")
+The returned data is backend specific."
+  (swb-query-fetch-plist this (swb-get-table-info-query this table)))
+
+(defmethod swb-get-table-info-query ((this swb-iconnection) table)
+  "Return the query which returns information about TABLE.")
 
 (defmethod swb-company-get-table-columns ((this swb-iconnection) table)
   (--map (plist-get it :Field) (swb-get-table-info this table)))
