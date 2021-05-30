@@ -952,11 +952,14 @@ If no connection is established, try to connect first."
     map)
   "Keymap for swb mode.")
 
-(defun swb--src-font-lock-fontify-block (lang start end)
+(defun swb--src-font-lock-fontify-block (lang element)
   "Fontify code block.
 This function is called by emacs automatic fontification, as long
 as `org-src-fontify-natively' is non-nil."
-  (let ((lang-mode (org-src--get-lang-mode lang)))
+  (let* ((lang-mode (org-src--get-lang-mode lang))
+         (start (org-element-property :begin element))
+         (end (org-element-property :end element))
+         (contents-end (or (org-element-property :contents-end element) end)))
     (when (fboundp lang-mode)
       (let ((string (buffer-substring-no-properties start end))
             (modified (buffer-modified-p))
@@ -993,6 +996,9 @@ as `org-src-fontify-natively' is non-nil."
                 (when (get-text-property pos 'font-lock-face)
                   (remove-text-properties pos next '(face)))
                 (setq pos next)))))
+        (font-lock--remove-face-from-text-property
+         start contents-end 'face 'org-block)
+        (font-lock-append-text-property start contents-end 'face 'org-block)
         (add-text-properties
          start end
          '(font-lock-fontified t fontified t font-lock-multiline t))
@@ -1018,8 +1024,7 @@ as `org-src-fontify-natively' is non-nil."
                                     (org-element-property :begin element))))
                     (swb--src-font-lock-fontify-block
                      "org"
-                     (org-element-property :begin element)
-                     (org-element-property :end element)))
+                     element))
                   (> (org-element-property :end element) limit))
                 nil t)
           (throw 'done nil))
