@@ -967,6 +967,8 @@ If no connection is established, try to connect first."
     (define-key map (kbd "C-c C-e") 'swb-use-database)
     (define-key map (kbd "C-c C-k") 'swb-copy-query-at-point)
     (define-key map (kbd "C-c C-,") 'org-insert-structure-template)
+    ;; bind some commands from org-mode
+    (define-key map (kbd "C-c S") 'org-table-sort-lines)
     map)
   "Keymap for swb mode.")
 
