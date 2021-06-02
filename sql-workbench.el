@@ -591,6 +591,9 @@ if (all(dates == floor_date(dates, 'month'))) {
 data <- fill_gaps(data, value = 0, .full = TRUE)
 
 plot <- autoplot(data, vars(value))
+if (n_keys(data) > 10) {
+    plot <- plot + theme(legend.position = \"none\")
+}
 ggsave(\"%s\", plot = plot, width = 10, height = 8, dpi = 300)
 "
                    index
