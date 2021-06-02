@@ -211,6 +211,15 @@ drop table #swb_query_meta"
   (let ((data (swb-query-fetch-plist this query)))
     (--map (cadr it) data)))
 
+(defmethod swb-query-fetch-tuples ((this swb-connection-mssql) query &optional with-header)
+  (let* ((plists (swb-query-fetch-plist this query))
+         (data (--map (-map 'cadr (-partition 2 it)) plists))
+         (header (-map (lambda (x) (substring (symbol-name (car x)) 1))
+                       (-partition 2 (car plists)))))
+    (if with-header
+        (cons header data)
+      data)))
+
 (defmethod swb-query-fetch-plist ((this swb-connection-mssql) query)
   (with-temp-buffer
     (swb-query-synchronously this query (current-buffer))
