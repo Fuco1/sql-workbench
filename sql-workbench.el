@@ -1053,6 +1053,7 @@ as `org-src-fontify-natively' is non-nil."
   "Mode for editing SQL queries."
   :after-hook (font-lock-add-keywords nil '((swb-fontify-org-code)))
   (use-local-map swb-mode-map)
+  (push (list "Named refs" "^#\\+name: +\\(.*\\)$" 1) imenu-generic-expression)
   (setq header-line-format swb-header-line-format)
   (when (featurep 'flycheck)
     (flycheck-add-mode 'sql-sqlint 'swb-mode))
