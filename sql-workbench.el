@@ -647,14 +647,9 @@ function."
                 (save-excursion
                   (goto-char point)
                   (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                    (swb-clear-inline-result)
                     (goto-char end)
-                    (when (looking-at " -- => \\(.*\\);")
-                      (delete-region (point) (match-end 0)))
                     (forward-char)
-                    (let ((element (org-element-at-point)))
-                      (when (eq (org-element-type element) 'table)
-                        (delete-region (org-element-property :begin element)
-                                       (org-element-property :contents-end element))))
                     (insert (with-current-buffer result-buffer
                               (org-font-lock-ensure)
                               (let ((inhibit-read-only t)
@@ -680,9 +675,8 @@ function."
                 (save-excursion
                   (goto-char point)
                   (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                    (swb-clear-inline-result)
                     (goto-char end)
-                    (when (looking-at " -- => \\(.*\\);")
-                      (delete-region (point) (match-end 0)))
                     (insert (format " -- => %s;"
                                     (let ((data (-map 's-trim (-flatten rows))))
                                       (if (= (length rows) 1)
@@ -707,10 +701,9 @@ function."
                   (save-excursion
                     (goto-char point)
                     (-let (((_ . end) (swb-get-query-bounds-at-point)))
+                      (swb-clear-inline-result)
                       (goto-char end)
                       (forward-line 1)
-                      (when (eq (car (get-text-property (point) 'display)) 'image)
-                        (delete-char 1))
                       (unless (looking-at-p "$")
                         (insert "\n"))
                       (insert-image i ";"))))
@@ -721,6 +714,27 @@ function."
                 ;; make sure there is no gap... this moves the point to the
                 ;; 4th visible line of the window
                 (recenter 4)))))))))
+
+(defun swb-clear-inline-result ()
+  (interactive)
+  (-let (((_ . end) (swb-get-query-bounds-at-point)))
+    ;; inline single-line result
+    (save-excursion
+      (goto-char end)
+      (when (looking-at " -- => \\(.*\\);")
+        (delete-region (point) (match-end 0)))
+      ;; inline table result
+      (goto-char end)
+      (forward-char)
+      (let ((element (org-element-at-point)))
+        (when (eq (org-element-type element) 'table)
+          (delete-region (org-element-property :begin element)
+                         (org-element-property :contents-end element))))
+      ;; graph result
+      (goto-char end)
+      (forward-line 1)
+      (when (eq (car (get-text-property (point) 'display)) 'image)
+        (delete-char 1)))))
 
 (defun swb-query-display-result (query buffer &optional point source-buffer params)
   "Display result of QUERY in BUFFER.
@@ -945,6 +959,7 @@ If no connection is established, try to connect first."
     (define-key map (kbd "C-c C-d") 'swb-show-data-in-table)
     (define-key map (kbd "C-c C-t") 'swb-describe-table)
     (define-key map (kbd "C-c C-c") 'swb-send-current-query)
+    (define-key map (kbd "C-c C-f") 'swb-clear-inline-result)
     (define-key map (kbd "C-c C-r") 'swb-reconnect)
     (define-key map (kbd "C-c C-x C-r") 'swb-R-send-current-query)
     (define-key map (kbd "C-c C-s") 'swb-store-connection-to-file)
