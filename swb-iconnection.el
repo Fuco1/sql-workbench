@@ -134,7 +134,7 @@ The query should return one column and one row only.
 Data are retrieved synchronously."
   (car (swb-query-fetch-column this query)))
 
-(defmethod swb-query-fetch-tuples ((this swb-iconnection) query)
+(defmethod swb-query-fetch-tuples ((this swb-iconnection) query &optional with-header)
   "Run QUERY and return a list of tuples, one for each row.
 
 Each tuple contains as many elements as there were columns

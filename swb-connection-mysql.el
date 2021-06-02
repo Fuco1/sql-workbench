@@ -207,8 +207,9 @@ SQL query."
     (let* ((rows (--map (-map 's-trim (split-string it "\t" t)) (split-string (buffer-string) "\n" t))))
       (-drop-while (-lambda ((car)) (and (stringp car) (string-prefix-p "mysql:" car))) rows))))
 
-(defmethod swb-query-fetch-tuples ((this swb-connection-mysql) query)
-  (cdr (swb-mysql--fetch-tuples-and-column-names this query)))
+(defmethod swb-query-fetch-tuples ((this swb-connection-mysql) query &optional with-header)
+  (let ((data (swb-mysql--fetch-tuples-and-column-names this query)))
+    (if with-header data (cdr data))))
 
 (defmethod swb-query-fetch-plist ((this swb-connection-mysql) query)
   (-let* (((columns . data) (swb-mysql--fetch-tuples-and-column-names this query))
