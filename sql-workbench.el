@@ -469,7 +469,7 @@ results has columns:
    connection
    (-remove-item query (swb-get-active-queries connection))))
 
-(defun swb--result-as-graph (data metadata)
+(defun swb--result-as-graph (data metadata annotations)
   "Render DATA as a time-series graph.
 
 DATA is a data structure created with `org-table-to-lisp'. First
@@ -478,6 +478,26 @@ names.  This MUST be present.
 
 METADATA is an instance of `swb-metadata' describing the result
 set.
+
+ANNOTATIONS are parsed from the first comment before the query.
+The comment must have format
+
+    -- :keyword value [:keyword value]*
+
+Supported annotations are:
+
+- :normalize-scale t/nil/string
+   Normalize all observations to common scale.
+     t      => yes, pick first observation as base scale
+     nil    => [default] no
+     string => name of the observation to be used as base scale
+
+- :fill t/nil/value
+   Fill missing values.
+     t     => [default] fill missing (NULL) values with 0
+     nil   => do not fill any missing values
+     value => fill missing (NULL) values with value
+
 
 Several heuristics are used to determine the index, key and
 observation columns.
@@ -565,7 +585,30 @@ twice.  When prompted to save workspace image, say no."
                        (s-join ", " (append (list index) key-cols ts-cols))
                        (s-join ", " (append (list index) key-cols))
                        index
-                       (s-join ", " (--map (format "\"%s\"" it) (append key-cols (list "name"))))))))
+                       (s-join ", " (--map (format "\"%s\"" it) (append key-cols (list "name")))))))
+          (rescale
+           (-when-let (base-series
+                       (cond
+                        ((eq (plist-get annotations :normalize-scale) t)
+                         (car ts-cols))
+                        ((stringp (plist-get annotations :normalize-scale))
+                         (plist-get annotations :normalize-scale))))
+             (format
+              "max_scale <- filter(data, name == \"%s\") %%>%% pull(value) %%>%% max(na.rm = T)
+data <- group_by(data, name) %%>%% mutate(value = value * max_scale / max(value, na.rm = T)) %%>%% ungroup"
+              base-series)))
+          (fill
+           (-when-let (fill-value
+                       (cond
+                        ((not (plist-member annotations :fill)) 0)
+                        ((eq (plist-get annotations :fill) t) 0)
+                        ((numberp (plist-get annotations :fill))
+                         (plist-get annotations :fill))))
+             (format
+              "data <- fill_gaps(data, value = %s, .full = TRUE)
+data[is.na(data$value),]$value <- %s"
+              fill-value
+              fill-value))))
 
     (unwind-protect
         (progn
@@ -586,7 +629,8 @@ if (all(dates == floor_date(dates, 'month'))) {
     data <- mutate(data, {{index}} := yearmonth(.data[[index]]))
 }
 
-data <- fill_gaps(data, value = 0, .full = TRUE)
+%s
+%s
 
 plot <- autoplot(data, vars(value))
 if (n_keys(data) > 10) {
@@ -596,6 +640,8 @@ ggsave(\"%s\", plot = plot, width = 10, height = 8, dpi = 300)
 "
                    index
                    data-str
+                   (or fill "")
+                   (or rescale "")
                    graphics-file-name)
            'utf-8
            code-file-name)
@@ -685,27 +731,43 @@ function."
                    point
                    (plist-get params :inline-graph))
               (delete-window)
-              (let* ((graph-file (with-current-buffer result-buffer
-                                   (swb--result-as-graph
-                                    (org-table-to-lisp)
-                                    swb-metadata)))
-                     (i (with-selected-window (get-buffer-window source-buffer)
-                          `(image :type imagemagick
-                                  :file ,graph-file
-                                  :margin 10
-                                  :width ,(- (window-pixel-width) 20)
-                                  :max-height ,(round (* (window-pixel-height) 0.8))))))
-                (with-current-buffer source-buffer
-                  (save-excursion
-                    (goto-char point)
-                    (-let (((_ . end) (swb-get-query-bounds-at-point)))
-                      (swb-clear-inline-result)
-                      (goto-char end)
-                      (forward-line 1)
-                      (unless (looking-at-p "$")
-                        (insert "\n"))
-                      (insert-image i ";"))))
-                (kill-buffer result-buffer)))
+              (with-current-buffer source-buffer
+                (save-excursion
+                  (goto-char point)
+                  (-let* (((beg . end) (swb-get-query-bounds-at-point))
+                          (annotations
+                           (save-excursion
+                             (goto-char beg)
+                             (catch 'done
+                               (while (< (point) end)
+                                 (if (not (looking-at "^-- +:"))
+                                     (forward-line 1)
+                                   (goto-char (1- (match-end 0)))
+                                   (let (items)
+                                     (while (< (point) (line-end-position))
+                                       (push
+                                        (read (current-buffer))
+                                        items)
+                                       (skip-syntax-forward " "))
+                                     (throw 'done (nreverse items))))))))
+                          (graph-file (with-current-buffer result-buffer
+                                        (swb--result-as-graph
+                                         (org-table-to-lisp)
+                                         swb-metadata
+                                         annotations)))
+                          (i (with-selected-window (get-buffer-window source-buffer)
+                               `(image :type imagemagick
+                                       :file ,graph-file
+                                       :margin 10
+                                       :width ,(- (window-pixel-width) 20)
+                                       :max-height ,(round (* (window-pixel-height) 0.8))))))
+                    (swb-clear-inline-result)
+                    (goto-char end)
+                    (forward-line 1)
+                    (unless (looking-at-p "$")
+                      (insert "\n"))
+                    (insert-image i ";")
+                    (kill-buffer result-buffer)))))
              (t (set-window-point window (point-min))
                 (forward-line 3)
                 (swb-result-forward-cell 1)
@@ -807,6 +869,9 @@ engine are installed."
       (insert (swb-R-get-connection connection var))
       (ess-eval-region (point-min) (point-max) t))))
 
+;; TODO: add annotation parsing :as_tsibble and automatically
+;; determine the index and interval column (extract this logic from
+;; the graph code)
 (defun swb-R-send-current-query (var &optional arg)
   "Send current query to an R process."
   (interactive "sTarget variable: \nP")
