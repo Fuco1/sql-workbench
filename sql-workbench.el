@@ -1,12 +1,11 @@
-;;; sql-workbench.el --- Send queries to a database and work with results. -*- lexical-binding: t -*-
+;;; sql-workbench.el --- Org Mode powered DBMS workbench. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015-2017 Matúš Goljer <matus.goljer@gmail.com>
+;; Copyright (C) 2015-2021 Matúš Goljer <matus.goljer@gmail.com>
 
 ;; Author: Matúš Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 21st July 2015
-;; Package-requires: ((dash "2.10.0") (s "1.5.0") (ov "1.0") (shut-up "0.3.2") (json-mode "1.6.0") (hydra "0.15)"))
 ;; Keywords: data
 
 ;; This program is free software; you can redistribute it and/or
@@ -24,12 +23,11 @@
 
 ;;; Commentary:
 
-;; TODO: Better error handling (font-lock the error)
-
 ;;; Code:
 
 (require 'dash)
 (require 's)
+(require 'f)
 (require 'ov)
 (require 'shut-up)
 (require 'json-mode)
@@ -47,7 +45,7 @@
 
 ;;; Workbench mode
 (defgroup sql-workbench ()
-  "Workbench for SQL."
+  "Org Mode powered DBMS workbench."
   :group 'data
   :prefix "swb-")
 
