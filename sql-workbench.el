@@ -435,7 +435,10 @@ results has columns:
 ;; move it to the class
 (defun swb-get-query-at-point ()
   "Get query at point."
-  (-let* (((beg . end) (swb-get-query-bounds-at-point))
+  (-let* (((beg . end)
+           (if (region-active-p)
+               (cons (region-beginning) (region-end))
+             (swb-get-query-bounds-at-point)))
           (q (buffer-substring-no-properties beg end))
           (with-expanded-star (swb--expand-columns-in-select-query (s-trim q))))
     (org-babel-expand-noweb-references
