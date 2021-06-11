@@ -38,6 +38,7 @@
 (require 'org-table)
 (require 'org-src)
 (require 'epg)
+(require 'ob-workbench)
 
 (require 'swb-connection-mysql)
 (require 'swb-connection-mssql)

@@ -43,3 +43,5 @@
           (kill-buffer-and-window)
         (kill-buffer result-buffer)))
     result))
+
+(provide 'ob-workbench)
