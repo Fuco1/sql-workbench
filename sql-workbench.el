@@ -1707,7 +1707,8 @@ Column starts at 1."
   "Fontify cell."
   (backward-char 1)
   ;; TODO: put "column" property on the text?
-  (let ((cc (org-table-current-column)))
+  (let ((cc (org-table-current-column))
+        (case-fold-search t))
     (when (< 0 cc)
       (-when-let* ((current-type (swb-get-metadata :type cc))
                    ;; TODO: precompute this
