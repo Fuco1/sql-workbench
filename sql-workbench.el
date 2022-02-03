@@ -1730,12 +1730,14 @@ Column starts at 1."
 (defun swb-result-fontify-json (limit)
   "Fontify cells which appear to hold JSON content with `json-mode'."
   (while (re-search-forward (rx "|" (1+ " ") (or "{" "[{") 34) limit t)
-    (let ((type (swb-get-metadata :type (org-table-current-column))))
-      (when (string-match-p type (regexp-opt (list "STRING" "BLOB")))
-        (org-src-font-lock-fontify-block
-         'json
-         (save-excursion (org-table-beginning-of-field 1) (point))
-         (save-excursion (org-table-end-of-field 1) (point)))))))
+    (let ((type (swb-get-metadata :type (org-table-current-column)))
+          (case-fold-search t))
+      (let ((beg (save-excursion (org-table-beginning-of-field 1) (point)))
+            (end (save-excursion (org-table-end-of-field 1) (point))))
+        (when (string-match-p (regexp-opt (list "STRING" "BLOB" "NVARCHAR")) type)
+          (org-src-font-lock-fontify-block 'json beg end)
+          (font-lock--remove-face-from-text-property
+           beg end 'face 'org-block (current-buffer)))))))
 
 (defvar-local swb-result-cell-position nil
   "Position in the result buffer corresponding to the cell being edited.")
