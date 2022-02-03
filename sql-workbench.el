@@ -1715,6 +1715,8 @@ Column starts at 1."
                    (face (cond
                           ((string-match-p "long\\|tiny\\|int" current-type)
                            font-lock-builtin-face)
+                          ((string-match-p "bit" current-type)
+                           font-lock-variable-name-face)
                           ((string-match-p "double\\|decimal" current-type)
                            font-lock-keyword-face)
                           ((string-match-p "string\\|varchar" current-type)
